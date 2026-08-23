@@ -19,16 +19,16 @@ public class Usuario {
     @Column(name = "usuario_id")
     private Long id;
 
-    @Column(name = "nombre_usuario",unique = true, nullable = false)
+    @Column(unique = true, nullable = false)
     private String username;
 
-    @Column(name = "password_hash",nullable = false)
+    @Column(nullable = false)
     private String password;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "rol", nullable = false)
+    @Column(nullable = false)
     private Rol rol;
 
-    @Column(name = "estado", nullable = false)
+    @Column(nullable = false)
     private boolean estado;
 }
