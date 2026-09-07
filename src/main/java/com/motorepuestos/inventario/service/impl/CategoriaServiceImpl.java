@@ -33,10 +33,7 @@ public class CategoriaServiceImpl implements CategoriaService {
 
     @Override
     public CategoriaResponse obtenerPorId(Long id) {
-        Categoria categoria = categoriaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
-
-        return categoriaMapper.toResponse(categoria);
+        return categoriaMapper.toResponse(obtenerCategoriaOrThrow(id));
     }
 
     @Override
