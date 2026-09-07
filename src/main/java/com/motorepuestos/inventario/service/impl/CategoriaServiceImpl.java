@@ -7,6 +7,8 @@ import com.motorepuestos.inventario.exception.ResourceConflictException;
 import com.motorepuestos.inventario.exception.ResourceNotFoundException;
 import com.motorepuestos.inventario.mapper.CategoriaMapper;
 import com.motorepuestos.inventario.repository.CategoriaRepository;
+import com.motorepuestos.inventario.repository.ProductoRepository;
+import com.motorepuestos.inventario.service.AuditoriaService;
 import com.motorepuestos.inventario.service.CategoriaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ public class CategoriaServiceImpl implements CategoriaService {
 
     private final CategoriaRepository categoriaRepository;
     private final CategoriaMapper categoriaMapper;
+    private final ProductoRepository productoRepository;
 
 
     @Override
@@ -31,6 +34,7 @@ public class CategoriaServiceImpl implements CategoriaService {
         Categoria categoria = categoriaMapper.toEntity(request);
 
         Categoria guardarCategoria = categoriaRepository.save(categoria);
+
 
         return categoriaMapper.toResponse(guardarCategoria);
     }
@@ -55,7 +59,7 @@ public class CategoriaServiceImpl implements CategoriaService {
 
         if (!categoria.getNombre().equals(request.getNombre())
                 && categoriaRepository.existsByNombre(request.getNombre())) {
-            throw new RuntimeException("El nombre de la categoría ya existe");
+            throw new ResourceConflictException("El nombre de la categoría ya existe");
         }
 
         categoria.setNombre(request.getNombre());
@@ -67,6 +71,12 @@ public class CategoriaServiceImpl implements CategoriaService {
     @Transactional
     public void eliminar(Long id) {
         Categoria categoria = obtenerCategoriaOrThrow(id);
+
+        if (productoRepository.existsByCategoriaId(id)) {
+            throw new ResourceConflictException(
+                    "No se puede eliminar la categoría porque tiene productos asociados"
+            );
+        }
 
         categoriaRepository.delete(categoria);
     }
