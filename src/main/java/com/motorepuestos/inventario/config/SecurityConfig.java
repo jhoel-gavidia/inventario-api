@@ -61,17 +61,12 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth ->
                         auth
-                                .requestMatchers("api/v1/auth/**").permitAll()
+                                .requestMatchers("/api/v1/auth/**").permitAll()
                                 .requestMatchers("/api/v1/productos/**").hasRole("ADMIN")
-                                .anyRequest().authenticated()
                                 .requestMatchers("/api/v1/categorias/**").hasRole("ADMIN")
-                                .anyRequest().authenticated()
                                 .requestMatchers("/api/v1/movimientos/**").hasRole("ADMIN")
-                                .anyRequest().authenticated()
                                 .requestMatchers("/api/v1/usuarios/**").hasRole("ADMIN")
                                 .anyRequest().authenticated()
-
-
                 )
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(
