@@ -10,10 +10,12 @@ import com.motorepuestos.inventario.repository.ProductoRepository;
 import com.motorepuestos.inventario.service.ProductoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 @Service
 public class ProductoServiceImpl implements ProductoService {
 
@@ -22,10 +24,10 @@ public class ProductoServiceImpl implements ProductoService {
     private final CategoriaRepository categoriaRepository;
 
     @Override
+    @Transactional
     public ProductoResponse crear(ProductoRequest request) {
-        Categoria categoria = categoriaRepository.findById(request.getCategoriaId()).orElseThrow(
-                () -> new RuntimeException("Categoria no encontrada")
-        );
+        validarCodigoDisponible(request.getCodigo());
+        Categoria categoria = obtenerCategoriaOrThrow(request.getCategoriaId());
 
         Producto producto = productoMapper.toEntity(request);
         producto.setCategoria(categoria);
@@ -37,11 +39,7 @@ public class ProductoServiceImpl implements ProductoService {
 
     @Override
     public ProductoResponse obtenerPorId(Long id) {
-        Producto producto = productoRepository.findById(id).orElseThrow(
-                () -> new RuntimeException("Producto no encontrado")
-        );
-
-        return productoMapper.toResponse(producto);
+        return productoMapper.toResponse(obtenerProductoOrThrow(id));
     }
 
     @Override
@@ -53,14 +51,17 @@ public class ProductoServiceImpl implements ProductoService {
     }
 
     @Override
+    @Transactional
     public ProductoResponse actualizar(Long id, ProductoRequest request) {
-        Producto producto = productoRepository.findById(id).orElseThrow(
-                () -> new RuntimeException("Producto no encontrado")
-        );
+        Producto producto = obtenerProductoOrThrow(id);
 
-        Categoria categoria = categoriaRepository.findById(request.getCategoriaId()).orElseThrow(
-                () -> new RuntimeException("Categoria no encontrada")
-        );
+        boolean cambioCodigo = !producto.getCodigo().equals(request.getCodigo());
+
+        if (cambioCodigo) {
+            validarCodigoDisponible(request.getCodigo());
+        }
+
+        Categoria categoria = obtenerCategoriaOrThrow(request.getCategoriaId());
 
         producto.setCodigo(request.getCodigo());
         producto.setNombre(request.getNombre());
@@ -69,16 +70,31 @@ public class ProductoServiceImpl implements ProductoService {
         producto.setPrecioVenta(request.getPrecioVenta());
         producto.setEstado(request.getEstado());
 
-        productoRepository.save(producto);
 
         return productoMapper.toResponse(producto);
     }
 
     @Override
+    @Transactional
     public void eliminar(Long id) {
-        Producto producto = productoRepository.findById(id).orElseThrow(
-                () -> new RuntimeException("Producto no encontrado")
-        );
+        Producto producto = obtenerProductoOrThrow(id);
         productoRepository.delete(producto);
+    }
+
+    private Producto obtenerProductoOrThrow(Long id) {
+        return productoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado con id: " + id));
+    }
+
+
+    private Categoria obtenerCategoriaOrThrow(Long categoriaId) {
+        return categoriaRepository.findById(categoriaId)
+                .orElseThrow(() -> new RuntimeException("Categoría no encontrada con id: " + categoriaId));
+    }
+
+    private void validarCodigoDisponible(String codigo) {
+        if (productoRepository.existsByCodigo(codigo)) {
+            throw new RuntimeException("El código del producto ya existe: " + codigo);
+        }
     }
 }
