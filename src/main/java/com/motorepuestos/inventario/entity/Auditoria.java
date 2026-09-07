@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -13,7 +15,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "auditorias")
+@Table(name = "auditorias",
+        indexes = @Index(name = "idx_auditoria_entidad", columnList = "entidad, entidad_id"))
 public class Auditoria {
 
     @Id
@@ -34,9 +37,11 @@ public class Auditoria {
     @Column(name = "entidad_id", nullable = false)
     private Long entidadId;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "datos_ant", columnDefinition = "jsonb")
     private String datosAnt;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "datos_new", columnDefinition = "jsonb")
     private String datosNew;
 
