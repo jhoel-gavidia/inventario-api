@@ -1,6 +1,7 @@
 package com.motorepuestos.inventario.service;
 
 import com.motorepuestos.inventario.DTOs.Request.UsuarioRequest;
+import com.motorepuestos.inventario.DTOs.Request.UsuarioUpdateRequest;
 import com.motorepuestos.inventario.DTOs.Response.UsuarioResponse;
 
 import java.util.List;
@@ -12,7 +13,7 @@ public interface UsuarioService {
 
     List<UsuarioResponse> obtenerTodos();
 
-    UsuarioResponse actualizar(Long id, UsuarioRequest request);
+    UsuarioResponse actualizar(Long id, UsuarioUpdateRequest request);
 
     void eliminar(Long id);
 }

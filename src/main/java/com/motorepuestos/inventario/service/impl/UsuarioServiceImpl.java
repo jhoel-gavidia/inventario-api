@@ -1,6 +1,7 @@
 package com.motorepuestos.inventario.service.impl;
 
 import com.motorepuestos.inventario.DTOs.Request.UsuarioRequest;
+import com.motorepuestos.inventario.DTOs.Request.UsuarioUpdateRequest;
 import com.motorepuestos.inventario.DTOs.Response.UsuarioResponse;
 import com.motorepuestos.inventario.entity.Usuario;
 import com.motorepuestos.inventario.mapper.UsuarioMapper;
@@ -9,10 +10,12 @@ import com.motorepuestos.inventario.service.UsuarioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 @Service
 public class UsuarioServiceImpl implements UsuarioService {
 
@@ -21,13 +24,16 @@ public class UsuarioServiceImpl implements UsuarioService {
     private final PasswordEncoder passwordEncoder;
 
     @Override
+    @Transactional
     public UsuarioResponse crear(UsuarioRequest request) {
 
-        if (usuarioRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("El username ya existe");
-        }
+        validarUsuarioDisponible(request.getUsername());
 
         Usuario usuario = usuarioMapper.toEntity(request);
+
+        usuario.setPassword(
+                passwordEncoder.encode(request.getPassword())
+        );
 
         usuarioRepository.save(usuario);
 
@@ -36,10 +42,7 @@ public class UsuarioServiceImpl implements UsuarioService {
 
     @Override
     public UsuarioResponse obtenerPorId(Long id) {
-        Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-
-        return usuarioMapper.toResponse(usuario);
+        return usuarioMapper.toResponse(obtenerUsuarioOrThrow(id));
     }
 
     @Override
@@ -51,9 +54,9 @@ public class UsuarioServiceImpl implements UsuarioService {
     }
 
     @Override
-    public UsuarioResponse actualizar(Long id, UsuarioRequest request) {
-        Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+    @Transactional
+    public UsuarioResponse actualizar(Long id, UsuarioUpdateRequest request) {
+        Usuario usuario = obtenerUsuarioOrThrow(id);
 
         if (!usuario.getUsername().equals(request.getUsername())
                 && usuarioRepository.existsByUsername(request.getUsername())) {
@@ -61,22 +64,29 @@ public class UsuarioServiceImpl implements UsuarioService {
         }
 
         usuario.setUsername(request.getUsername());
-        usuario.setPassword(
-                passwordEncoder.encode(request.getPassword())
-        );
         usuario.setRol(request.getRol());
         usuario.setEstado(request.getEstado());
 
-        Usuario usuarioActualizado = usuarioRepository.save(usuario);
-
-        return usuarioMapper.toResponse(usuarioActualizado);
+        return usuarioMapper.toResponse(usuario);
     }
 
     @Override
+    @Transactional
     public void eliminar(Long id) {
-        Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        Usuario usuario = obtenerUsuarioOrThrow(id);
 
-        usuarioRepository.delete(usuario);
+        usuario.setEstado(false);
+    }
+
+    private Usuario obtenerUsuarioOrThrow(Long id) {
+        return usuarioRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+    }
+
+    private void validarUsuarioDisponible(String username) {
+        if (usuarioRepository.existsByUsername(username)) {
+            throw new RuntimeException("El username ya existe");
+        }
     }
 }
+
