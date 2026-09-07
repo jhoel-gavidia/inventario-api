@@ -50,9 +50,7 @@ public class CategoriaServiceImpl implements CategoriaService {
     @Override
     @Transactional
     public CategoriaResponse actualizar(Long id, CategoriaRequest request) {
-        Categoria categoria = categoriaRepository.findById(id).orElseThrow(
-                () -> new RuntimeException("Categoria no encontrada")
-        );
+        Categoria categoria = obtenerCategoriaOrThrow(id);
 
         categoria.setNombre(request.getNombre());
 
@@ -62,10 +60,13 @@ public class CategoriaServiceImpl implements CategoriaService {
     @Override
     @Transactional
     public void eliminar(Long id) {
-        Categoria categoria = categoriaRepository.findById(id).orElseThrow(
-                () -> new RuntimeException("Categoria no encontrada")
-        );
+        Categoria categoria = obtenerCategoriaOrThrow(id);
 
         categoriaRepository.delete(categoria);
+    }
+
+    private Categoria obtenerCategoriaOrThrow(Long id) {
+        return categoriaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Categoría no encontrada con id: " + id));
     }
 }
