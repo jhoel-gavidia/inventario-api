@@ -78,7 +78,7 @@ public class ProductoServiceImpl implements ProductoService {
     @Transactional
     public void eliminar(Long id) {
         Producto producto = obtenerProductoOrThrow(id);
-        productoRepository.delete(producto);
+        producto.setEstado(false);
     }
 
     private Producto obtenerProductoOrThrow(Long id) {
