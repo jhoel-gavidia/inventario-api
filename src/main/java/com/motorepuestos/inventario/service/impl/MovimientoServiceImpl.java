@@ -100,15 +100,14 @@ public class MovimientoServiceImpl implements MovimientoService {
 
 
     private Usuario obtenerUsuarioAutenticado() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        String username = authentication.getName();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new IllegalStateException("No hay usuario autenticado en el contexto");
+        }
 
-        return usuarioRepository.findByUsername(username)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Usuario autenticado no encontrado")
-                );
+        return usuarioRepository.findByUsername(authentication.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario autenticado no encontrado"));
     }
 
     private Movimiento obtenerMovimientoOrThrow(Long id) {
@@ -117,7 +116,7 @@ public class MovimientoServiceImpl implements MovimientoService {
     }
 
     private Producto obtenerProductoOrThrow(Long id) {
-        return productoRepository.findById(id)
+        return productoRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
     }
 }

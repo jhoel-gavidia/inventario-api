@@ -41,7 +41,8 @@ public class ProductoServiceImpl implements ProductoService {
 
     @Override
     public ProductoResponse obtenerPorId(Long id) {
-        return productoMapper.toResponse(obtenerProductoOrThrow(id));
+        // Solo lectura: sin lock, para no romper la transacción readOnly
+        return productoMapper.toResponse(obtenerProductoSinLockOrThrow(id));
     }
 
     @Override
@@ -55,7 +56,8 @@ public class ProductoServiceImpl implements ProductoService {
     @Override
     @Transactional
     public ProductoResponse actualizar(Long id, ProductoRequest request) {
-        Producto producto = obtenerProductoOrThrow(id);
+        // Escritura: con lock, para evitar carreras entre ediciones concurrentes
+        Producto producto = obtenerProductoConLockOrThrow(id);
 
         boolean cambioCodigo = !producto.getCodigo().equals(request.getCodigo());
 
@@ -72,22 +74,26 @@ public class ProductoServiceImpl implements ProductoService {
         producto.setPrecioVenta(request.getPrecioVenta());
         producto.setEstado(request.getEstado());
 
-
         return productoMapper.toResponse(producto);
     }
 
     @Override
     @Transactional
     public void eliminar(Long id) {
-        Producto producto = obtenerProductoOrThrow(id);
+        // Escritura (soft delete): con lock
+        Producto producto = obtenerProductoConLockOrThrow(id);
         producto.setEstado(false);
     }
 
-    private Producto obtenerProductoOrThrow(Long id) {
+    private Producto obtenerProductoSinLockOrThrow(Long id) {
         return productoRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
     }
 
+    private Producto obtenerProductoConLockOrThrow(Long id) {
+        return productoRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
+    }
 
     private Categoria obtenerCategoriaOrThrow(Long categoriaId) {
         return categoriaRepository.findById(categoriaId)
