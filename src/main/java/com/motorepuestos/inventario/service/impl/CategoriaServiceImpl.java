@@ -8,10 +8,12 @@ import com.motorepuestos.inventario.repository.CategoriaRepository;
 import com.motorepuestos.inventario.service.CategoriaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 @Service
 public class CategoriaServiceImpl implements CategoriaService {
 
@@ -20,6 +22,7 @@ public class CategoriaServiceImpl implements CategoriaService {
 
 
     @Override
+    @Transactional
     public CategoriaResponse crear(CategoriaRequest request) {
         Categoria categoria = categoriaMapper.toEntity(request);
 
@@ -45,6 +48,7 @@ public class CategoriaServiceImpl implements CategoriaService {
     }
 
     @Override
+    @Transactional
     public CategoriaResponse actualizar(Long id, CategoriaRequest request) {
         Categoria categoria = categoriaRepository.findById(id).orElseThrow(
                 () -> new RuntimeException("Categoria no encontrada")
@@ -52,12 +56,11 @@ public class CategoriaServiceImpl implements CategoriaService {
 
         categoria.setNombre(request.getNombre());
 
-        categoriaRepository.save(categoria);
-
         return categoriaMapper.toResponse(categoria);
     }
 
     @Override
+    @Transactional
     public void eliminar(Long id) {
         Categoria categoria = categoriaRepository.findById(id).orElseThrow(
                 () -> new RuntimeException("Categoria no encontrada")
