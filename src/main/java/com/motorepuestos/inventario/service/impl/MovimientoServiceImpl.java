@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 @Service
 public class MovimientoServiceImpl implements MovimientoService {
 
@@ -29,71 +30,25 @@ public class MovimientoServiceImpl implements MovimientoService {
 
     @Override
     public MovimientoResponse obtenerPorId(Long id) {
-        Movimiento movimiento = movimientoRepository.findById(id).orElseThrow(
-                () -> new RuntimeException("Movimiento no encontrado")
-        );
-
-        return movimientoMapper.toResponse(movimiento);
+        return movimientoMapper.toResponse(obtenerMovimientoOrThrow(id));
     }
 
     @Override
     @Transactional
     public MovimientoResponse registrar(MovimientoRequest request) {
-
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-
-        String username = authentication.getName();
-
-        Usuario usuario = usuarioRepository.findByUsername(username)
-                .orElseThrow(() ->
-                        new RuntimeException("Usuario autenticado no encontrado")
-                );
-
-        Movimiento movimiento = new Movimiento();
-
-        movimiento.setTipo(request.getTipo());
-        movimiento.setFecha(LocalDateTime.now());
-        movimiento.setUsuario(usuario);
-
         if (request.getDetalles() == null || request.getDetalles().isEmpty()) {
             throw new RuntimeException("El movimiento debe tener al menos un detalle");
         }
 
-        for(DetalleMovimientoRequest detalleRequest : request.getDetalles()){
-            Producto producto = productoRepository.findById(
-                    detalleRequest.getProductoId()
-            ).orElseThrow(() ->
-                    new RuntimeException("Producto no encontrado")
-            );
+        Usuario usuario = obtenerUsuarioAutenticado();
 
+        Movimiento movimiento = new Movimiento();
+        movimiento.setTipo(request.getTipo());
+        movimiento.setFecha(LocalDateTime.now());
+        movimiento.setUsuario(usuario);
 
-            Integer cantidad = detalleRequest.getCantidad();
-
-            if (request.getTipo() == Tipo.SALIDA
-                    && producto.getStockActual() < cantidad) {
-
-                throw new RuntimeException(
-                        "Stock insuficiente para el producto: "
-                                + producto.getNombre()
-                );
-            }
-
-            if (request.getTipo() == Tipo.ENTRADA) {
-                producto.setStockActual(
-                        producto.getStockActual() + cantidad
-                );
-            } else {
-                producto.setStockActual(
-                        producto.getStockActual() - cantidad
-                );
-            }
-
-            DetalleMovimiento detalle = new DetalleMovimiento();
-            detalle.setMovimiento(movimiento);
-            detalle.setProducto(producto);
-            detalle.setCantidad(cantidad);
-
+        for (DetalleMovimientoRequest detalleRequest : request.getDetalles()) {
+            DetalleMovimiento detalle = construirDetalle(movimiento, request.getTipo(), detalleRequest);
             movimiento.getDetalles().add(detalle);
         }
 
@@ -109,5 +64,62 @@ public class MovimientoServiceImpl implements MovimientoService {
                 .stream()
                 .map(movimientoMapper::toResponse)
                 .toList();
+    }
+
+    private DetalleMovimiento construirDetalle(
+            Movimiento movimiento, Tipo tipo, DetalleMovimientoRequest detalleRequest
+    ) {
+        Producto producto = obtenerProductoOrThrow(detalleRequest.getProductoId());
+        Integer cantidad = detalleRequest.getCantidad();
+
+        actualizarStock(producto, tipo, cantidad);
+
+        DetalleMovimiento detalle = new DetalleMovimiento();
+        detalle.setMovimiento(movimiento);
+        detalle.setProducto(producto);
+        detalle.setCantidad(cantidad);
+
+        return detalle;
+    }
+
+    private void actualizarStock(Producto producto, Tipo tipo, Integer cantidad) {
+        if (tipo == Tipo.ENTRADA) {
+            producto.setStockActual(
+                    producto.getStockActual() + cantidad
+            );
+
+            return;
+        }
+
+        if (producto.getStockActual() < cantidad) {
+            throw new RuntimeException(
+                    "Stock insuficiente para el producto: " + producto.getNombre()
+            );
+        }
+
+        producto.setStockActual(producto.getStockActual() - cantidad);
+    }
+
+
+    private Usuario obtenerUsuarioAutenticado() {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        String username = authentication.getName();
+
+        return usuarioRepository.findByUsername(username)
+                .orElseThrow(() ->
+                        new RuntimeException("Usuario autenticado no encontrado")
+                );
+    }
+
+    private Movimiento obtenerMovimientoOrThrow(Long id) {
+        return movimientoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Movimiento no encontrado con id: " + id));
+    }
+
+    private Producto obtenerProductoOrThrow(Long id) {
+        return productoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
     }
 }
