@@ -40,9 +40,7 @@ public class Producto {
     @Column(nullable = false)
     private Integer stockActual;
 
-    @Column(nullable = false)
-    private Integer stockMinimo;
 
     @Column(nullable = false)
-    private boolean estado;
+    private Boolean estado;
 }
