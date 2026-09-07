@@ -8,7 +8,9 @@ import com.motorepuestos.inventario.exception.ResourceConflictException;
 import com.motorepuestos.inventario.exception.ResourceNotFoundException;
 import com.motorepuestos.inventario.mapper.UsuarioMapper;
 import com.motorepuestos.inventario.repository.UsuarioRepository;
+import com.motorepuestos.inventario.service.AuditoriaService;
 import com.motorepuestos.inventario.service.UsuarioService;
+import com.motorepuestos.inventario.util.JsonUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,8 @@ public class UsuarioServiceImpl implements UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final UsuarioMapper usuarioMapper;
     private final PasswordEncoder passwordEncoder;
+    private final AuditoriaService auditoriaService;
+    private final JsonUtil jsonUtil;
 
     @Override
     @Transactional
@@ -39,7 +43,17 @@ public class UsuarioServiceImpl implements UsuarioService {
 
         usuarioRepository.save(usuario);
 
-        return usuarioMapper.toResponse(usuario);
+        UsuarioResponse response = usuarioMapper.toResponse(usuario);
+
+        auditoriaService.registrar(
+                "CREAR",
+                "USUARIO",
+                usuario.getId(),
+                null,
+                jsonUtil.convertir(response)
+        );
+
+        return response;
     }
 
     @Override
@@ -60,6 +74,8 @@ public class UsuarioServiceImpl implements UsuarioService {
     public UsuarioResponse actualizar(Long id, UsuarioUpdateRequest request) {
         Usuario usuario = obtenerUsuarioOrThrow(id);
 
+        UsuarioResponse datosAntResponse = usuarioMapper.toResponse(usuario);
+
         if (!usuario.getUsername().equals(request.getUsername())
                 && usuarioRepository.existsByUsername(request.getUsername())) {
             throw new ResourceConflictException("El username ya existe");
@@ -69,7 +85,17 @@ public class UsuarioServiceImpl implements UsuarioService {
         usuario.setRol(request.getRol());
         usuario.setEstado(request.getEstado());
 
-        return usuarioMapper.toResponse(usuario);
+        UsuarioResponse datosNewResponse = usuarioMapper.toResponse(usuario);
+
+        auditoriaService.registrar(
+                "ACTUALIZAR",
+                "USUARIO",
+                usuario.getId(),
+                jsonUtil.convertir(datosAntResponse),
+                jsonUtil.convertir(datosNewResponse)
+        );
+
+        return datosNewResponse;
     }
 
     @Override
@@ -77,7 +103,19 @@ public class UsuarioServiceImpl implements UsuarioService {
     public void eliminar(Long id) {
         Usuario usuario = obtenerUsuarioOrThrow(id);
 
+        UsuarioResponse datosAntResponse = usuarioMapper.toResponse(usuario);
+
         usuario.setEstado(false);
+
+        UsuarioResponse datosNewResponse = usuarioMapper.toResponse(usuario);
+
+        auditoriaService.registrar(
+                "ELIMINAR",
+                "USUARIO",
+                usuario.getId(),
+                jsonUtil.convertir(datosAntResponse),
+                jsonUtil.convertir(datosNewResponse)
+        );
     }
 
     private Usuario obtenerUsuarioOrThrow(Long id) {

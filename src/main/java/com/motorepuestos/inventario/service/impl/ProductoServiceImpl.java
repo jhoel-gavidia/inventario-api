@@ -9,7 +9,9 @@ import com.motorepuestos.inventario.exception.ResourceNotFoundException;
 import com.motorepuestos.inventario.mapper.ProductoMapper;
 import com.motorepuestos.inventario.repository.CategoriaRepository;
 import com.motorepuestos.inventario.repository.ProductoRepository;
+import com.motorepuestos.inventario.service.AuditoriaService;
 import com.motorepuestos.inventario.service.ProductoService;
+import com.motorepuestos.inventario.util.JsonUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +26,8 @@ public class ProductoServiceImpl implements ProductoService {
     private final ProductoMapper productoMapper;
     private final ProductoRepository productoRepository;
     private final CategoriaRepository categoriaRepository;
+    private final AuditoriaService auditoriaService;
+    private final JsonUtil jsonUtil;
 
     @Override
     @Transactional
@@ -36,7 +40,17 @@ public class ProductoServiceImpl implements ProductoService {
 
         productoRepository.save(producto);
 
-        return productoMapper.toResponse(producto);
+        ProductoResponse response = productoMapper.toResponse(producto);
+
+        auditoriaService.registrar(
+                "CREAR",
+                "PRODUCTO",
+                producto.getId(),
+                null,
+                jsonUtil.convertir(response)
+        );
+
+        return response;
     }
 
     @Override
@@ -59,6 +73,8 @@ public class ProductoServiceImpl implements ProductoService {
         // Escritura: con lock, para evitar carreras entre ediciones concurrentes
         Producto producto = obtenerProductoConLockOrThrow(id);
 
+        ProductoResponse datosAntResponse = productoMapper.toResponse(producto);
+
         boolean cambioCodigo = !producto.getCodigo().equals(request.getCodigo());
 
         if (cambioCodigo) {
@@ -74,7 +90,17 @@ public class ProductoServiceImpl implements ProductoService {
         producto.setPrecioVenta(request.getPrecioVenta());
         producto.setEstado(request.getEstado());
 
-        return productoMapper.toResponse(producto);
+        ProductoResponse datosNewResponse = productoMapper.toResponse(producto);
+
+        auditoriaService.registrar(
+                "ACTUALIZAR",
+                "PRODUCTO",
+                producto.getId(),
+                jsonUtil.convertir(datosAntResponse),
+                jsonUtil.convertir(datosNewResponse)
+        );
+
+        return datosNewResponse;
     }
 
     @Override
@@ -82,7 +108,20 @@ public class ProductoServiceImpl implements ProductoService {
     public void eliminar(Long id) {
         // Escritura (soft delete): con lock
         Producto producto = obtenerProductoConLockOrThrow(id);
+
+        ProductoResponse datosAntResponse = productoMapper.toResponse(producto);
+
         producto.setEstado(false);
+
+        ProductoResponse datosNewResponse = productoMapper.toResponse(producto);
+
+        auditoriaService.registrar(
+                "ELIMINAR",
+                "PRODUCTO",
+                producto.getId(),
+                jsonUtil.convertir(datosAntResponse),
+                jsonUtil.convertir(datosNewResponse)
+        );
     }
 
     private Producto obtenerProductoSinLockOrThrow(Long id) {

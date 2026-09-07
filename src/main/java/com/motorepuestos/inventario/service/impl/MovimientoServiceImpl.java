@@ -10,7 +10,9 @@ import com.motorepuestos.inventario.mapper.MovimientoMapper;
 import com.motorepuestos.inventario.repository.MovimientoRepository;
 import com.motorepuestos.inventario.repository.ProductoRepository;
 import com.motorepuestos.inventario.repository.UsuarioRepository;
+import com.motorepuestos.inventario.service.AuditoriaService;
 import com.motorepuestos.inventario.service.MovimientoService;
+import com.motorepuestos.inventario.util.JsonUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -29,6 +31,8 @@ public class MovimientoServiceImpl implements MovimientoService {
     private final ProductoRepository productoRepository;
     private final MovimientoMapper movimientoMapper;
     private final UsuarioRepository usuarioRepository;
+    private final AuditoriaService auditoriaService;
+    private final JsonUtil jsonUtil;
 
     @Override
     public MovimientoResponse obtenerPorId(Long id) {
@@ -52,8 +56,17 @@ public class MovimientoServiceImpl implements MovimientoService {
 
         Movimiento movimientoGuardado =
                 movimientoRepository.save(movimiento);
+        MovimientoResponse response = movimientoMapper.toResponse(movimientoGuardado);
 
-        return movimientoMapper.toResponse(movimientoGuardado);
+        auditoriaService.registrar(
+                "REGISTRAR",
+                "MOVIMIENTO",
+                movimientoGuardado.getId(),
+                null,
+                jsonUtil.convertir(response)
+        );
+
+        return response;
     }
 
     @Override
