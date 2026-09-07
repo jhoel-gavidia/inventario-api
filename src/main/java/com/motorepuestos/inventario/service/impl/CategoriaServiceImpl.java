@@ -3,6 +3,8 @@ package com.motorepuestos.inventario.service.impl;
 import com.motorepuestos.inventario.DTOs.Request.CategoriaRequest;
 import com.motorepuestos.inventario.DTOs.Response.CategoriaResponse;
 import com.motorepuestos.inventario.entity.Categoria;
+import com.motorepuestos.inventario.exception.ResourceConflictException;
+import com.motorepuestos.inventario.exception.ResourceNotFoundException;
 import com.motorepuestos.inventario.mapper.CategoriaMapper;
 import com.motorepuestos.inventario.repository.CategoriaRepository;
 import com.motorepuestos.inventario.service.CategoriaService;
@@ -71,12 +73,12 @@ public class CategoriaServiceImpl implements CategoriaService {
 
     private Categoria obtenerCategoriaOrThrow(Long id) {
         return categoriaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Categoría no encontrada con id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada con id: " + id));
     }
 
     private void validarNombreDisponible(String nombre) {
         if (categoriaRepository.existsByNombre(nombre)) {
-            throw new RuntimeException("El nombre de la categoría ya existe");
+            throw new ResourceConflictException("El nombre de la categoría ya existe");
         }
     }
 }

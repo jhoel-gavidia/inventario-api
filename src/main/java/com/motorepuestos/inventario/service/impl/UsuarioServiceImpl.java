@@ -4,6 +4,8 @@ import com.motorepuestos.inventario.DTOs.Request.UsuarioRequest;
 import com.motorepuestos.inventario.DTOs.Request.UsuarioUpdateRequest;
 import com.motorepuestos.inventario.DTOs.Response.UsuarioResponse;
 import com.motorepuestos.inventario.entity.Usuario;
+import com.motorepuestos.inventario.exception.ResourceConflictException;
+import com.motorepuestos.inventario.exception.ResourceNotFoundException;
 import com.motorepuestos.inventario.mapper.UsuarioMapper;
 import com.motorepuestos.inventario.repository.UsuarioRepository;
 import com.motorepuestos.inventario.service.UsuarioService;
@@ -60,7 +62,7 @@ public class UsuarioServiceImpl implements UsuarioService {
 
         if (!usuario.getUsername().equals(request.getUsername())
                 && usuarioRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("El username ya existe");
+            throw new ResourceConflictException("El username ya existe");
         }
 
         usuario.setUsername(request.getUsername());
@@ -80,12 +82,12 @@ public class UsuarioServiceImpl implements UsuarioService {
 
     private Usuario obtenerUsuarioOrThrow(Long id) {
         return usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
     }
 
     private void validarUsuarioDisponible(String username) {
         if (usuarioRepository.existsByUsername(username)) {
-            throw new RuntimeException("El username ya existe");
+            throw new ResourceConflictException("El username ya existe");
         }
     }
 }

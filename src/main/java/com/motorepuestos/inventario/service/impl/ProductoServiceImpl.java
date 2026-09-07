@@ -4,6 +4,8 @@ import com.motorepuestos.inventario.DTOs.Request.ProductoRequest;
 import com.motorepuestos.inventario.DTOs.Response.ProductoResponse;
 import com.motorepuestos.inventario.entity.Categoria;
 import com.motorepuestos.inventario.entity.Producto;
+import com.motorepuestos.inventario.exception.ResourceConflictException;
+import com.motorepuestos.inventario.exception.ResourceNotFoundException;
 import com.motorepuestos.inventario.mapper.ProductoMapper;
 import com.motorepuestos.inventario.repository.CategoriaRepository;
 import com.motorepuestos.inventario.repository.ProductoRepository;
@@ -83,18 +85,18 @@ public class ProductoServiceImpl implements ProductoService {
 
     private Producto obtenerProductoOrThrow(Long id) {
         return productoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado con id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con id: " + id));
     }
 
 
     private Categoria obtenerCategoriaOrThrow(Long categoriaId) {
         return categoriaRepository.findById(categoriaId)
-                .orElseThrow(() -> new RuntimeException("Categoría no encontrada con id: " + categoriaId));
+                .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada con id: " + categoriaId));
     }
 
     private void validarCodigoDisponible(String codigo) {
         if (productoRepository.existsByCodigo(codigo)) {
-            throw new RuntimeException("El código del producto ya existe: " + codigo);
+            throw new ResourceConflictException("El código del producto ya existe: " + codigo);
         }
     }
 }
