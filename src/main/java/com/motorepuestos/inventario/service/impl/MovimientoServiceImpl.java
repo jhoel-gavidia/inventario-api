@@ -4,6 +4,8 @@ import com.motorepuestos.inventario.DTOs.Request.DetalleMovimientoRequest;
 import com.motorepuestos.inventario.DTOs.Request.MovimientoRequest;
 import com.motorepuestos.inventario.DTOs.Response.MovimientoResponse;
 import com.motorepuestos.inventario.entity.*;
+import com.motorepuestos.inventario.exception.BusinessException;
+import com.motorepuestos.inventario.exception.ResourceNotFoundException;
 import com.motorepuestos.inventario.mapper.MovimientoMapper;
 import com.motorepuestos.inventario.repository.MovimientoRepository;
 import com.motorepuestos.inventario.repository.ProductoRepository;
@@ -36,10 +38,6 @@ public class MovimientoServiceImpl implements MovimientoService {
     @Override
     @Transactional
     public MovimientoResponse registrar(MovimientoRequest request) {
-        if (request.getDetalles() == null || request.getDetalles().isEmpty()) {
-            throw new RuntimeException("El movimiento debe tener al menos un detalle");
-        }
-
         Usuario usuario = obtenerUsuarioAutenticado();
 
         Movimiento movimiento = new Movimiento();
@@ -92,7 +90,7 @@ public class MovimientoServiceImpl implements MovimientoService {
         }
 
         if (producto.getStockActual() < cantidad) {
-            throw new RuntimeException(
+            throw new BusinessException(
                     "Stock insuficiente para el producto: " + producto.getNombre()
             );
         }
@@ -109,17 +107,17 @@ public class MovimientoServiceImpl implements MovimientoService {
 
         return usuarioRepository.findByUsername(username)
                 .orElseThrow(() ->
-                        new RuntimeException("Usuario autenticado no encontrado")
+                        new ResourceNotFoundException("Usuario autenticado no encontrado")
                 );
     }
 
     private Movimiento obtenerMovimientoOrThrow(Long id) {
         return movimientoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Movimiento no encontrado con id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Movimiento no encontrado con id: " + id));
     }
 
     private Producto obtenerProductoOrThrow(Long id) {
         return productoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
     }
 }

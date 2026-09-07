@@ -27,6 +27,7 @@ public class Movimiento {
     @Column(nullable = false)
     private Tipo tipo;
 
+    @Column(nullable = false)
     private LocalDateTime fecha;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
