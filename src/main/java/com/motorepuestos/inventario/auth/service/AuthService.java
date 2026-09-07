@@ -1,4 +1,9 @@
-package com.motorepuestos.inventario.auth;
+package com.motorepuestos.inventario.auth.service;
 
-public class AuthService {
+import com.motorepuestos.inventario.auth.dto.LoginRequest;
+import com.motorepuestos.inventario.auth.dto.LoginResponse;
+
+public interface AuthService {
+
+    LoginResponse login(LoginRequest request);
 }

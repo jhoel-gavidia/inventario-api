@@ -10,7 +10,5 @@ import org.mapstruct.Mapping;
         uses = DetalleMovimientoMapper.class)
 public interface MovimientoMapper {
 
-    @Mapping(source = "producto.id", target = "productoId")
-    @Mapping(source = "producto.nombre", target = "productoNombre")
     MovimientoResponse toResponse(Movimiento movimiento);
 }
