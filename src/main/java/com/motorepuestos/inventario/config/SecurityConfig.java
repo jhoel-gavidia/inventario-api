@@ -4,6 +4,7 @@ import com.motorepuestos.inventario.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -62,10 +63,25 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth ->
                         auth
                                 .requestMatchers("/api/v1/auth/**").permitAll()
-                                .requestMatchers("/api/v1/productos/**").hasRole("ADMIN")
-                                .requestMatchers("/api/v1/categorias/**").hasRole("ADMIN")
-                                .requestMatchers("/api/v1/movimientos/**").hasRole("ADMIN")
-                                .requestMatchers("/api/v1/usuarios/**").hasRole("ADMIN")
+
+                                .requestMatchers(HttpMethod.GET, "/api/v1/categorias/**")
+                                .hasAnyRole("USER", "ADMIN")
+
+                                .requestMatchers("/api/v1/categorias/**")
+                                .hasRole("ADMIN")
+
+                                .requestMatchers(HttpMethod.GET, "/api/v1/productos/**")
+                                .hasAnyRole("USER", "ADMIN")
+
+                                .requestMatchers("/api/v1/productos/**")
+                                .hasRole("ADMIN")
+
+                                .requestMatchers("/api/v1/movimientos/**")
+                                .hasAnyRole("USER", "ADMIN")
+
+                                .requestMatchers("/api/v1/usuarios/**")
+                                .hasRole("ADMIN")
+
                                 .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())
