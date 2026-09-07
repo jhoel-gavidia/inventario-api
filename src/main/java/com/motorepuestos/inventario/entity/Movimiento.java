@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -30,4 +32,11 @@ public class Movimiento {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
+
+    @OneToMany(
+            mappedBy = "movimiento",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<DetalleMovimiento> detalles = new ArrayList<>();
 }
