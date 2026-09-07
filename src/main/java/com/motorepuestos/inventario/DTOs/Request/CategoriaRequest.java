@@ -7,6 +7,6 @@ import lombok.*;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class CategoriaResquest {
+public class CategoriaRequest {
     private String nombre;
 }
