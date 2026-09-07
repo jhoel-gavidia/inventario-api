@@ -1,15 +1,17 @@
 package com.motorepuestos.inventario.service.impl;
 
+import com.motorepuestos.inventario.DTOs.Request.DetalleMovimientoRequest;
 import com.motorepuestos.inventario.DTOs.Request.MovimientoRequest;
 import com.motorepuestos.inventario.DTOs.Response.MovimientoResponse;
-import com.motorepuestos.inventario.entity.Movimiento;
-import com.motorepuestos.inventario.entity.Producto;
-import com.motorepuestos.inventario.entity.Tipo;
+import com.motorepuestos.inventario.entity.*;
 import com.motorepuestos.inventario.mapper.MovimientoMapper;
 import com.motorepuestos.inventario.repository.MovimientoRepository;
 import com.motorepuestos.inventario.repository.ProductoRepository;
+import com.motorepuestos.inventario.repository.UsuarioRepository;
 import com.motorepuestos.inventario.service.MovimientoService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,7 @@ public class MovimientoServiceImpl implements MovimientoService {
     private final MovimientoRepository movimientoRepository;
     private final ProductoRepository productoRepository;
     private final MovimientoMapper movimientoMapper;
+    private final UsuarioRepository usuarioRepository;
 
     @Override
     public MovimientoResponse obtenerPorId(Long id) {
@@ -36,36 +39,68 @@ public class MovimientoServiceImpl implements MovimientoService {
     @Override
     @Transactional
     public MovimientoResponse registrar(MovimientoRequest request) {
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        String username = authentication.getName();
+
+        Usuario usuario = usuarioRepository.findByUsername(username)
+                .orElseThrow(() ->
+                        new RuntimeException("Usuario autenticado no encontrado")
+                );
+
         Movimiento movimiento = new Movimiento();
 
+        movimiento.setTipo(request.getTipo());
         movimiento.setFecha(LocalDateTime.now());
+        movimiento.setUsuario(usuario);
 
-        for(var detalle : movimiento.getDetalles()){
-            Producto producto = productoRepository.findById(detalle.getProducto().getId()).orElseThrow(
-                    () -> new RuntimeException("Producto no encontrado")
-            );
-
-            Integer cantidad = detalle.getCantidad();
-
-            if(request.getTipo() == Tipo.ENTRADA) {
-                producto.setStockActual(producto.getStockActual() + cantidad);
-            } else {
-                if(producto.getStockActual() < cantidad) {
-                    throw new RuntimeException("Stock insuficiente para el producto: " + producto.getNombre()
-                    );
-                }
-
-                producto.setStockActual(producto.getStockActual() - cantidad);
-            }
-
-            detalle.setProducto(producto);
-            detalle.setMovimiento(movimiento);
-            detalle.setCantidad(cantidad);
+        if (request.getDetalles() == null || request.getDetalles().isEmpty()) {
+            throw new RuntimeException("El movimiento debe tener al menos un detalle");
         }
 
-        movimientoRepository.save(movimiento);
+        for(DetalleMovimientoRequest detalleRequest : request.getDetalles()){
+            Producto producto = productoRepository.findById(
+                    detalleRequest.getProductoId()
+            ).orElseThrow(() ->
+                    new RuntimeException("Producto no encontrado")
+            );
 
-        return movimientoMapper.toResponse(movimiento);
+
+            Integer cantidad = detalleRequest.getCantidad();
+
+            if (request.getTipo() == Tipo.SALIDA
+                    && producto.getStockActual() < cantidad) {
+
+                throw new RuntimeException(
+                        "Stock insuficiente para el producto: "
+                                + producto.getNombre()
+                );
+            }
+
+            if (request.getTipo() == Tipo.ENTRADA) {
+                producto.setStockActual(
+                        producto.getStockActual() + cantidad
+                );
+            } else {
+                producto.setStockActual(
+                        producto.getStockActual() - cantidad
+                );
+            }
+
+            DetalleMovimiento detalle = new DetalleMovimiento();
+            detalle.setMovimiento(movimiento);
+            detalle.setProducto(producto);
+            detalle.setCantidad(cantidad);
+
+            movimiento.getDetalles().add(detalle);
+        }
+
+        Movimiento movimientoGuardado =
+                movimientoRepository.save(movimiento);
+
+        return movimientoMapper.toResponse(movimientoGuardado);
     }
 
     @Override
