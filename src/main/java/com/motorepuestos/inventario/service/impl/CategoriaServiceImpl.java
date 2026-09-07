@@ -24,6 +24,8 @@ public class CategoriaServiceImpl implements CategoriaService {
     @Override
     @Transactional
     public CategoriaResponse crear(CategoriaRequest request) {
+        validarNombreDisponible(request.getNombre());
+
         Categoria categoria = categoriaMapper.toEntity(request);
 
         Categoria guardarCategoria = categoriaRepository.save(categoria);
@@ -49,6 +51,11 @@ public class CategoriaServiceImpl implements CategoriaService {
     public CategoriaResponse actualizar(Long id, CategoriaRequest request) {
         Categoria categoria = obtenerCategoriaOrThrow(id);
 
+        if (!categoria.getNombre().equals(request.getNombre())
+                && categoriaRepository.existsByNombre(request.getNombre())) {
+            throw new RuntimeException("El nombre de la categoría ya existe");
+        }
+
         categoria.setNombre(request.getNombre());
 
         return categoriaMapper.toResponse(categoria);
@@ -65,5 +72,11 @@ public class CategoriaServiceImpl implements CategoriaService {
     private Categoria obtenerCategoriaOrThrow(Long id) {
         return categoriaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Categoría no encontrada con id: " + id));
+    }
+
+    private void validarNombreDisponible(String nombre) {
+        if (categoriaRepository.existsByNombre(nombre)) {
+            throw new RuntimeException("El nombre de la categoría ya existe");
+        }
     }
 }
