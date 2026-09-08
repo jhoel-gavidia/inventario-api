@@ -8,6 +8,7 @@ import com.motorepuestos.inventario.entity.Rol;
 import com.motorepuestos.inventario.entity.Usuario;
 import com.motorepuestos.inventario.exception.ResourceConflictException;
 import com.motorepuestos.inventario.exception.ResourceNotFoundException;
+import com.motorepuestos.inventario.repository.AuditoriaRepository;
 import com.motorepuestos.inventario.repository.CategoriaRepository;
 import com.motorepuestos.inventario.repository.ProductoRepository;
 import com.motorepuestos.inventario.repository.UsuarioRepository;
@@ -19,7 +20,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -27,7 +27,6 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@Transactional
 class ProductoServiceIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
@@ -41,6 +40,9 @@ class ProductoServiceIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private AuditoriaRepository auditoriaRepository;
 
     private Categoria categoria;
 
@@ -82,6 +84,10 @@ class ProductoServiceIntegrationTest extends AbstractIntegrationTest {
     @AfterEach
     void tearDown() {
         SecurityContextHolder.clearContext();
+        auditoriaRepository.deleteAll();
+        productoRepository.deleteAll();
+        categoriaRepository.deleteAll();
+        usuarioRepository.deleteAll();
     }
 
     @Test
