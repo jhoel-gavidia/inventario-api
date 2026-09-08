@@ -113,15 +113,6 @@ public class CategoriaServiceImpl implements CategoriaService {
                 jsonUtil.convertir(datosAntResponse),
                 null
         );
-
-        String datosAnt = jsonUtil.convertir(categoria);
-
-        categoriaRepository.delete(categoria);
-
-        auditoriaService.registrar(
-                "ELIMINAR", "CATEGORIA", id,
-                datosAnt, null
-        );
     }
 
     private Categoria obtenerCategoriaOrThrow(Long id) {
