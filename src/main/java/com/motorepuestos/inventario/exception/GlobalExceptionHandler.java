@@ -7,6 +7,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -134,6 +137,23 @@ public class GlobalExceptionHandler {
         );
         log.warn("Tipo inválido en {}: {}", request.getRequestURI(), message);
         return buildResponse(HttpStatus.BAD_REQUEST, message, request);
+    }
+
+    @ExceptionHandler({
+            BadCredentialsException.class,
+            DisabledException.class
+    })
+    public ResponseEntity<ErrorResponse> handleAuthenticationException(
+            AuthenticationException exception,
+            HttpServletRequest request
+    ) {
+        log.warn("Error de autenticación en {}", request.getRequestURI());
+
+        return buildResponse(
+                HttpStatus.UNAUTHORIZED,
+                "Credenciales inválidas",
+                request
+        );
     }
 
     @ExceptionHandler(Exception.class)

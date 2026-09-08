@@ -1,7 +1,9 @@
-package com.motorepuestos.inventario.auth.service;
+package com.motorepuestos.inventario.service;
 
 import com.motorepuestos.inventario.auth.dto.LoginRequest;
 import com.motorepuestos.inventario.auth.dto.LoginResponse;
+import com.motorepuestos.inventario.auth.service.AuthService;
+import com.motorepuestos.inventario.auth.service.JwtService;
 import com.motorepuestos.inventario.entity.Rol;
 import com.motorepuestos.inventario.entity.Usuario;
 import com.motorepuestos.inventario.repository.UsuarioRepository;
@@ -11,7 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -118,6 +120,6 @@ class AuthServiceIntegrationTest extends AbstractIntegrationTest {
         assertThatThrownBy(
                 () -> authService.login(request)
         )
-                .isInstanceOf(BadCredentialsException.class);
+                .isInstanceOf(DisabledException.class);
     }
 }
