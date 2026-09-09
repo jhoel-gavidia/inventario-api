@@ -3,6 +3,13 @@ target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+.flattened-pom.xml
 
 ### STS ###
 .apt_generated
@@ -32,4 +39,10 @@ build/
 ### VS Code ###
 .vscode/
 
+# Spring Boot
+*.log
+
+# Environment variables / secrets
 .env
+.env.*
+!.env.example
