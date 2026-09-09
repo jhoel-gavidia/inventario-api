@@ -21,10 +21,10 @@ public class Producto {
     @Column(name = "producto_id")
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 30)
+    @Column(nullable = false, unique = true, length = 50)
     private String codigo;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 150)
     private String nombre;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

@@ -20,10 +20,10 @@ public class Usuario {
     @Column(name = "usuario_id")
     private Long id;
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = true, nullable = false, length = 50)
     private String username;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     @JsonIgnore
     private String password;
 
