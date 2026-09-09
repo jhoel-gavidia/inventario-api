@@ -20,7 +20,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -43,6 +45,8 @@ public class MovimientoServiceImpl implements MovimientoService {
     @Transactional
     public MovimientoResponse registrar(MovimientoRequest request) {
         Usuario usuario = obtenerUsuarioAutenticado();
+
+        validarProductosNoRepetidos(request.getDetalles());
 
         Movimiento movimiento = new Movimiento();
         movimiento.setTipo(request.getTipo());
@@ -75,6 +79,20 @@ public class MovimientoServiceImpl implements MovimientoService {
                 .stream()
                 .map(movimientoMapper::toResponse)
                 .toList();
+    }
+
+    private void validarProductosNoRepetidos(
+            List<DetalleMovimientoRequest> detalles
+    ) {
+        Set<Long> productos = new HashSet<>();
+
+        for (DetalleMovimientoRequest detalle : detalles) {
+            if (!productos.add(detalle.getProductoId())) {
+                throw new BusinessException(
+                        "El producto no puede repetirse dentro del mismo movimiento"
+                );
+            }
+        }
     }
 
     private DetalleMovimiento construirDetalle(
