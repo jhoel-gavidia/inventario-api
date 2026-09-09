@@ -50,7 +50,8 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(
-            HttpSecurity http
+            HttpSecurity http,
+            AuthenticationProvider authenticationProvider
     ) throws Exception {
 
         http
@@ -62,7 +63,11 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth ->
                         auth
+
+                                .requestMatchers("/actuator/health/**").permitAll()
+
                                 .requestMatchers("/api/v1/auth/**").permitAll()
+                                .requestMatchers("/error").permitAll()
 
                                 .requestMatchers(HttpMethod.GET, "/api/v1/categorias/**")
                                 .hasAnyRole("USER", "ADMIN")
@@ -84,7 +89,7 @@ public class SecurityConfig {
 
                                 .anyRequest().authenticated()
                 )
-                .authenticationProvider(authenticationProvider())
+                .authenticationProvider(authenticationProvider)
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
