@@ -103,7 +103,14 @@ public class SecurityConfig {
                                         "/v3/api-docs/**",
                                         "/actuator/health/**").permitAll()
 
-                                .requestMatchers("/api/v1/auth/**").permitAll()
+                                .requestMatchers(
+                                        "/api/v1/auth/login",
+                                        "/api/v1/auth/logout"
+                                ).permitAll()
+
+                                .requestMatchers("/api/v1/auth/me")
+                                .authenticated()
+
                                 .requestMatchers("/error").permitAll()
 
                                 .requestMatchers(HttpMethod.GET, "/api/v1/categorias/**")
