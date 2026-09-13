@@ -1,10 +1,14 @@
 package com.motorepuestos.inventario.auth.controller;
 
+import com.motorepuestos.inventario.DTOs.Request.UsuarioRequest;
+import com.motorepuestos.inventario.DTOs.Response.UsuarioResponse;
 import com.motorepuestos.inventario.auth.dto.LoginRequest;
 import com.motorepuestos.inventario.auth.dto.LoginResponse;
 import com.motorepuestos.inventario.auth.service.AuthService;
+import com.motorepuestos.inventario.service.UsuarioService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -20,6 +24,10 @@ import java.time.Duration;
 public class AuthController {
 
     private final AuthService authService;
+    private final UsuarioService usuarioService;
+
+    @Value("${ADMIN_BOOTSTRAP_TOKEN}")
+    private String adminBootstrapToken;
 
     @PostMapping("/login")
     public ResponseEntity<Void> login(
@@ -73,5 +81,23 @@ public class AuthController {
         }
 
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/bootstrap")
+    public ResponseEntity<UsuarioResponse> bootstrap(
+            @RequestHeader("X-Bootstrap-Token") String token,
+            @RequestBody UsuarioRequest request
+    ) {
+
+        if (!adminBootstrapToken.equals(token)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        UsuarioResponse response =
+                usuarioService.crearAdminInicial(request);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(response);
     }
 }

@@ -3,6 +3,7 @@ package com.motorepuestos.inventario.service.impl;
 import com.motorepuestos.inventario.DTOs.Request.UsuarioRequest;
 import com.motorepuestos.inventario.DTOs.Request.UsuarioUpdateRequest;
 import com.motorepuestos.inventario.DTOs.Response.UsuarioResponse;
+import com.motorepuestos.inventario.entity.Rol;
 import com.motorepuestos.inventario.entity.Usuario;
 import com.motorepuestos.inventario.exception.ResourceConflictException;
 import com.motorepuestos.inventario.exception.ResourceNotFoundException;
@@ -116,6 +117,42 @@ public class UsuarioServiceImpl implements UsuarioService {
                 jsonUtil.convertir(datosAntResponse),
                 jsonUtil.convertir(datosNewResponse)
         );
+    }
+
+    @Override
+    @Transactional
+    public UsuarioResponse crearAdminInicial(UsuarioRequest request) {
+
+        if (usuarioRepository.existsByRol(Rol.ADMIN)) {
+            throw new ResourceConflictException(
+                    "El administrador inicial ya fue creado"
+            );
+        }
+
+        validarUsuarioDisponible(request.getUsername());
+
+        Usuario usuario = usuarioMapper.toEntity(request);
+
+        usuario.setPassword(
+                passwordEncoder.encode(request.getPassword())
+        );
+
+        usuario.setRol(Rol.ADMIN);
+        usuario.setEstado(true);
+
+        usuarioRepository.save(usuario);
+
+        UsuarioResponse response = usuarioMapper.toResponse(usuario);
+
+        auditoriaService.registrar(
+                "CREAR",
+                "USUARIO",
+                usuario.getId(),
+                null,
+                jsonUtil.convertir(response)
+        );
+
+        return response;
     }
 
     private Usuario obtenerUsuarioOrThrow(Long id) {

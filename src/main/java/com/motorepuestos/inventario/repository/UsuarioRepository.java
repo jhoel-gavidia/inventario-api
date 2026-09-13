@@ -1,5 +1,6 @@
 package com.motorepuestos.inventario.repository;
 
+import com.motorepuestos.inventario.entity.Rol;
 import com.motorepuestos.inventario.entity.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -10,4 +11,6 @@ public interface UsuarioRepository  extends JpaRepository<Usuario, Long> {
     boolean existsByUsername(String username);
 
     Optional<Usuario> findByUsername(String username);
+
+    boolean existsByRol(Rol rol);
 }

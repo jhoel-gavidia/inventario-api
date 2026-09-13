@@ -16,4 +16,6 @@ public interface UsuarioService {
     UsuarioResponse actualizar(Long id, UsuarioUpdateRequest request);
 
     void eliminar(Long id);
+
+    UsuarioResponse crearAdminInicial(UsuarioRequest request);
 }
