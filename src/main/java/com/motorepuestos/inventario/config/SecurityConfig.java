@@ -111,6 +111,8 @@ public class SecurityConfig {
                                 .requestMatchers("/api/v1/auth/me")
                                 .authenticated()
 
+                                .requestMatchers(HttpMethod.POST, "/api/v1/auth/bootstrap").permitAll()
+
                                 .requestMatchers("/error").permitAll()
 
                                 .requestMatchers(HttpMethod.GET, "/api/v1/categorias/**")
