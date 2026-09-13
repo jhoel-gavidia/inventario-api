@@ -24,10 +24,6 @@ import java.time.Duration;
 public class AuthController {
 
     private final AuthService authService;
-    private final UsuarioService usuarioService;
-
-    @Value("${ADMIN_BOOTSTRAP_TOKEN}")
-    private String adminBootstrapToken;
 
     @PostMapping("/login")
     public ResponseEntity<Void> login(
@@ -81,23 +77,5 @@ public class AuthController {
         }
 
         return ResponseEntity.ok().build();
-    }
-
-    @PostMapping("/bootstrap")
-    public ResponseEntity<UsuarioResponse> bootstrap(
-            @RequestHeader("X-Bootstrap-Token") String token,
-            @RequestBody UsuarioRequest request
-    ) {
-
-        if (!adminBootstrapToken.equals(token)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        UsuarioResponse response =
-                usuarioService.crearAdminInicial(request);
-
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(response);
     }
 }
