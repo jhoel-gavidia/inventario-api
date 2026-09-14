@@ -5,6 +5,7 @@ import com.motorepuestos.inventario.DTOs.Response.UsuarioResponse;
 import com.motorepuestos.inventario.auth.dto.LoginRequest;
 import com.motorepuestos.inventario.auth.dto.LoginResponse;
 import com.motorepuestos.inventario.auth.service.AuthService;
+import com.motorepuestos.inventario.entity.Usuario;
 import com.motorepuestos.inventario.service.UsuarioService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
@@ -24,6 +26,7 @@ import java.time.Duration;
 public class AuthController {
 
     private final AuthService authService;
+    private final UsuarioService usuarioService;
 
     @PostMapping("/login")
     public ResponseEntity<Void> login(
@@ -71,11 +74,18 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<Void> me(Authentication authentication) {
+    public ResponseEntity<UsuarioResponse> me(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        return ResponseEntity.ok().build();
+        UsuarioResponse usuario = usuarioService.obtenerPorUsername(authentication.getName());
+
+        if (usuario == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+
+        return ResponseEntity.ok(usuario);
     }
 }

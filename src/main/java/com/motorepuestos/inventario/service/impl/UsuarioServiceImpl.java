@@ -99,6 +99,14 @@ public class UsuarioServiceImpl implements UsuarioService {
     }
 
     @Override
+    public UsuarioResponse obtenerPorUsername(String username) {
+        return usuarioRepository.findByUsername(username)
+                .map(usuarioMapper::toResponse)
+                .orElse(null);
+
+    }
+
+    @Override
     @Transactional
     public void eliminar(Long id) {
         Usuario usuario = obtenerUsuarioOrThrow(id);

@@ -15,6 +15,8 @@ public interface UsuarioService {
 
     UsuarioResponse actualizar(Long id, UsuarioUpdateRequest request);
 
+    UsuarioResponse obtenerPorUsername(String username);
+
     void eliminar(Long id);
 
 }
