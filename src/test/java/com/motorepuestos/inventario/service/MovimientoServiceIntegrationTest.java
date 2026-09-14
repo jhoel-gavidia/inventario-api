@@ -214,9 +214,12 @@ class MovimientoServiceIntegrationTest extends AbstractIntegrationTest {
         assertThat(response).isNotNull();
         assertThat(response.getId()).isNotNull();
 
-        Auditoria auditoria = auditoriaRepository
-                .findByEntidadAndEntidadId("MOVIMIENTO", response.getId())
-                .orElseThrow();
+        List<Auditoria> auditorias = auditoriaRepository
+                .findByEntidadAndEntidadIdOrderByFechaDesc("MOVIMIENTO", response.getId());
+
+        assertThat(auditorias).hasSize(1);
+
+        Auditoria auditoria = auditorias.get(0);
 
         assertThat(auditoria.getAccion()).isEqualTo("REGISTRAR");
         assertThat(auditoria.getEntidad()).isEqualTo("MOVIMIENTO");

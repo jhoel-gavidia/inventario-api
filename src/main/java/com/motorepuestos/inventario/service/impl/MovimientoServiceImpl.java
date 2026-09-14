@@ -9,13 +9,11 @@ import com.motorepuestos.inventario.exception.ResourceNotFoundException;
 import com.motorepuestos.inventario.mapper.MovimientoMapper;
 import com.motorepuestos.inventario.repository.MovimientoRepository;
 import com.motorepuestos.inventario.repository.ProductoRepository;
-import com.motorepuestos.inventario.repository.UsuarioRepository;
+import com.motorepuestos.inventario.security.SecurityUtils;
 import com.motorepuestos.inventario.service.AuditoriaService;
 import com.motorepuestos.inventario.service.MovimientoService;
 import com.motorepuestos.inventario.util.JsonUtil;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,7 +30,7 @@ public class MovimientoServiceImpl implements MovimientoService {
     private final MovimientoRepository movimientoRepository;
     private final ProductoRepository productoRepository;
     private final MovimientoMapper movimientoMapper;
-    private final UsuarioRepository usuarioRepository;
+    private final SecurityUtils securityUtils;
     private final AuditoriaService auditoriaService;
     private final JsonUtil jsonUtil;
 
@@ -44,7 +42,7 @@ public class MovimientoServiceImpl implements MovimientoService {
     @Override
     @Transactional
     public MovimientoResponse registrar(MovimientoRequest request) {
-        Usuario usuario = obtenerUsuarioAutenticado();
+        Usuario usuario = securityUtils.obtenerUsuarioAutenticado();
 
         validarProductosNoRepetidos(request.getDetalles());
 
@@ -129,17 +127,6 @@ public class MovimientoServiceImpl implements MovimientoService {
         producto.setStockActual(producto.getStockActual() - cantidad);
     }
 
-
-    private Usuario obtenerUsuarioAutenticado() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new IllegalStateException("No hay usuario autenticado en el contexto");
-        }
-
-        return usuarioRepository.findByUsername(authentication.getName())
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario autenticado no encontrado"));
-    }
 
     private Movimiento obtenerMovimientoOrThrow(Long id) {
         return movimientoRepository.findById(id)

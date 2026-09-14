@@ -1,20 +1,21 @@
 package com.motorepuestos.inventario.service.impl;
 
+import com.motorepuestos.inventario.DTOs.Response.AuditoriaResponse;
 import com.motorepuestos.inventario.entity.Auditoria;
 import com.motorepuestos.inventario.entity.Usuario;
 import com.motorepuestos.inventario.exception.ResourceNotFoundException;
+import com.motorepuestos.inventario.mapper.AuditoriaMapper;
 import com.motorepuestos.inventario.repository.AuditoriaRepository;
-import com.motorepuestos.inventario.repository.UsuarioRepository;
+import com.motorepuestos.inventario.security.SecurityUtils;
 import com.motorepuestos.inventario.service.AuditoriaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -22,7 +23,8 @@ import java.time.LocalDateTime;
 public class AuditoriaServiceImpl implements AuditoriaService {
 
     private final AuditoriaRepository auditoriaRepository;
-    private final UsuarioRepository usuarioRepository;
+    private final SecurityUtils securityUtils;
+    private final AuditoriaMapper auditoriaMapper;
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -34,7 +36,7 @@ public class AuditoriaServiceImpl implements AuditoriaService {
             String datosNew
     ) {
         try {
-            Usuario usuario = obtenerUsuarioAutenticado();
+            Usuario usuario = securityUtils.obtenerUsuarioAutenticado();
 
             Auditoria auditoria = new Auditoria();
             auditoria.setUsuario(usuario);
@@ -52,20 +54,35 @@ public class AuditoriaServiceImpl implements AuditoriaService {
         }
     }
 
-    private Usuario obtenerUsuarioAutenticado() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
+    @Override
+    @Transactional(readOnly = true)
+    public List<AuditoriaResponse> listar() {
+        return auditoriaRepository.findAllByOrderByFechaDesc()
+                .stream()
+                .map(auditoriaMapper::toResponse)
+                .toList();
+    }
 
-        if (authentication == null || !authentication.isAuthenticated()
-                || "anonymousUser".equals(authentication.getPrincipal())) {
-            throw new IllegalStateException("No hay usuario autenticado en el contexto");
-        }
+    @Override
+    @Transactional(readOnly = true)
+    public List<AuditoriaResponse> listarPorEntidad(String entidad, Long entidadId) {
+        return auditoriaRepository
+                .findByEntidadAndEntidadIdOrderByFechaDesc(entidad, entidadId)
+                .stream()
+                .map(auditoriaMapper::toResponse)
+                .toList();
+    }
 
-        String username = authentication.getName();
-
-        return usuarioRepository.findByUsername(username)
+    @Override
+    @Transactional(readOnly = true)
+    public AuditoriaResponse obtenerPorId(Long id) {
+        Auditoria auditoria = auditoriaRepository.findById(id)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Usuario autenticado no encontrado: " + username)
+                        new ResourceNotFoundException(
+                                "Auditoría no encontrada con id: " + id
+                        )
                 );
+
+        return auditoriaMapper.toResponse(auditoria);
     }
 }

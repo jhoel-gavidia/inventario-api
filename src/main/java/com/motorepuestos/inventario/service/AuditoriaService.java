@@ -1,5 +1,9 @@
 package com.motorepuestos.inventario.service;
 
+import com.motorepuestos.inventario.DTOs.Response.AuditoriaResponse;
+
+import java.util.List;
+
 public interface AuditoriaService {
 
     void registrar(
@@ -9,4 +13,10 @@ public interface AuditoriaService {
             String datosAnt,
             String datosNew
     );
+
+    List<AuditoriaResponse> listar();
+
+    List<AuditoriaResponse> listarPorEntidad(String entidad, Long entidadId);
+
+    AuditoriaResponse obtenerPorId(Long id);
 }

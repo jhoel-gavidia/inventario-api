@@ -137,6 +137,9 @@ public class SecurityConfig {
                                 .requestMatchers("/api/v1/usuarios/**")
                                 .hasRole("ADMIN")
 
+                                .requestMatchers("/api/v1/auditorias/**")
+                                .hasRole("ADMIN")
+
                                 .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider)
