@@ -1,7 +1,6 @@
 package com.motorepuestos.inventario.config;
 
 import com.motorepuestos.inventario.security.JwtAuthenticationFilter;
-import com.motorepuestos.inventario.security.LoginRateLimitFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -34,7 +33,6 @@ public class SecurityConfig {
     private String allowedOrigin;
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final LoginRateLimitFilter loginRateLimitFilter;
     private final UserDetailsService userDetailsService;
 
     @Bean
@@ -145,10 +143,6 @@ public class SecurityConfig {
                                 .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider)
-                .addFilterBefore(
-                        loginRateLimitFilter,
-                        JwtAuthenticationFilter.class
-                )
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
