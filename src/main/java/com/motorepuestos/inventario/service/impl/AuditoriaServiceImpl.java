@@ -55,6 +55,28 @@ public class AuditoriaServiceImpl implements AuditoriaService {
     }
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void registrar(
+            Usuario usuario,
+            String accion,
+            String entidad,
+            Long entidadId,
+            String datosAnt,
+            String datosNew
+    ) {
+            Auditoria auditoria = new Auditoria();
+            auditoria.setUsuario(usuario);
+            auditoria.setAccion(accion);
+            auditoria.setEntidad(entidad);
+            auditoria.setEntidadId(entidadId);
+            auditoria.setDatosAnt(datosAnt);
+            auditoria.setDatosNew(datosNew);
+            auditoria.setFecha(LocalDateTime.now());
+
+            auditoriaRepository.save(auditoria);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<AuditoriaResponse> listar() {
         return auditoriaRepository.findAllByOrderByFechaDesc()
