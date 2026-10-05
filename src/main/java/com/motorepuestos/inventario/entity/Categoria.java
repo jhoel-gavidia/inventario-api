@@ -21,4 +21,7 @@ public class Categoria {
 
     @Column(nullable = false, unique = true, length = 50)
     private String nombre;
+
+    @Column(nullable = false)
+    private Boolean estado;
 }

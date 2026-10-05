@@ -15,5 +15,6 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM Producto p WHERE p.id = :id")
     Optional<Producto> findByIdForUpdate(Long id);
-    boolean existsByCategoriaId(Long categoriaId);
+
+    boolean existsByCategoriaIdAndEstadoTrue(Long categoriaId);
 }

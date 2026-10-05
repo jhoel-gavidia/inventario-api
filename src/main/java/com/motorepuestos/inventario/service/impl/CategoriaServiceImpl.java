@@ -36,6 +36,7 @@ public class CategoriaServiceImpl implements CategoriaService {
         validarNombreDisponible(request.getNombre());
 
         Categoria categoria = categoriaMapper.toEntity(request);
+        categoria.setEstado(true);
 
         Categoria guardarCategoria = categoriaRepository.save(categoria);
 
@@ -98,20 +99,24 @@ public class CategoriaServiceImpl implements CategoriaService {
     public void eliminar(Long id) {
         Categoria categoria = obtenerCategoriaOrThrow(id);
 
-        if (productoRepository.existsByCategoriaId(id)) {
-            throw new BusinessException("No se puede eliminar la categoría porque tiene productos asociados");
+        if (productoRepository.existsByCategoriaIdAndEstadoTrue(id)) {
+            throw new BusinessException(
+                    "No se puede eliminar la categoría porque tiene productos activos asociados"
+            );
         }
 
         CategoriaResponse datosAntResponse = categoriaMapper.toResponse(categoria);
 
-        categoriaRepository.delete(categoria);
+        categoria.setEstado(false);
+
+        CategoriaResponse datosNewResponse = categoriaMapper.toResponse(categoria);
 
         auditoriaService.registrar(
                 "ELIMINAR",
                 "CATEGORIA",
                 categoria.getId(),
                 jsonUtil.convertir(datosAntResponse),
-                null
+                jsonUtil.convertir(datosNewResponse)
         );
     }
 

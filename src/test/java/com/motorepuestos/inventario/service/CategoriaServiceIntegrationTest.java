@@ -52,6 +52,7 @@ class CategoriaServiceIntegrationTest extends AbstractIntegrationTest {
 
         categoria = new Categoria();
         categoria.setNombre("Filtros");
+        categoria.setEstado(true);
         categoria = categoriaRepository.save(categoria);
 
         Usuario usuario = new Usuario();
@@ -152,6 +153,7 @@ class CategoriaServiceIntegrationTest extends AbstractIntegrationTest {
         // Arrange
         Categoria segundaCategoria = new Categoria();
         segundaCategoria.setNombre("Lubricantes");
+        segundaCategoria.setEstado(true);
         categoriaRepository.save(segundaCategoria);
 
         // Act
@@ -227,6 +229,7 @@ class CategoriaServiceIntegrationTest extends AbstractIntegrationTest {
         // Arrange
         Categoria segundaCategoria = new Categoria();
         segundaCategoria.setNombre("Lubricantes");
+        segundaCategoria.setEstado(true);
         categoriaRepository.save(segundaCategoria);
 
         CategoriaRequest request =
@@ -267,7 +270,7 @@ class CategoriaServiceIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void eliminar_debeEliminarCategoria() {
+    void eliminar_debeRealizarSoftDelete() {
 
         // Arrange
         Long categoriaId = categoria.getId();
@@ -276,8 +279,14 @@ class CategoriaServiceIntegrationTest extends AbstractIntegrationTest {
         categoriaService.eliminar(categoriaId);
 
         // Assert
-        assertThat(categoriaRepository.existsById(categoriaId))
-                .isFalse();
+        Categoria categoriaEliminada = categoriaRepository
+                .findById(categoriaId)
+                .orElseThrow();
+
+        assertThat(categoriaEliminada.getEstado()).isFalse();
+
+        // El registro sigue existiendo porque es soft delete
+        assertThat(categoriaRepository.existsById(categoriaId)).isTrue();
     }
 
     @Test
@@ -303,6 +312,34 @@ class CategoriaServiceIntegrationTest extends AbstractIntegrationTest {
 
         assertThat(categoriaRepository.existsById(categoria.getId()))
                 .isTrue();
+    }
+
+    @Test
+    void eliminar_conProductosInactivos_debeRealizarSoftDelete() {
+
+        // Arrange
+        Producto producto = new Producto();
+        producto.setCodigo("FIL-001");
+        producto.setNombre("Filtro de aceite");
+        producto.setCategoria(categoria);
+        producto.setPrecioCompra(new BigDecimal("10.00"));
+        producto.setPrecioVenta(new BigDecimal("15.00"));
+        producto.setStockActual(10);
+        producto.setEstado(false);
+
+        productoRepository.save(producto);
+
+        Long categoriaId = categoria.getId();
+
+        // Act
+        categoriaService.eliminar(categoriaId);
+
+        // Assert
+        Categoria categoriaEliminada = categoriaRepository
+                .findById(categoriaId)
+                .orElseThrow();
+
+        assertThat(categoriaEliminada.getEstado()).isFalse();
     }
 
     private CategoriaRequest crearCategoriaRequest(String nombre) {
