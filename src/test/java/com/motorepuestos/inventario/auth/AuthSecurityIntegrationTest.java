@@ -15,10 +15,12 @@ import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
@@ -123,6 +125,67 @@ class AuthSecurityIntegrationTest extends AbstractIntegrationTest {
                         .with(ip("10.0.0.5")))
                 .andExpect(status().isMethodNotAllowed())
                 .andExpect(jsonPath("$.status").value(405));
+    }
+
+    @Test
+    void cambiarPassword_conCredencialesValidas_debeActualizarElPassword() throws Exception {
+
+        // Arrange
+        Cookie token = login("10.0.0.6");
+
+        // Act
+        mockMvc.perform(put("/api/v1/auth/password")
+                        .cookie(token)
+                        .with(ip("10.0.0.6"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "passwordActual": "password-test",
+                                  "passwordNueva": "password-nueva-123"
+                                }
+                                """))
+                .andExpect(status().isNoContent());
+
+        // Assert
+        Usuario actualizado = usuarioRepository.findById(usuario.getId()).orElseThrow();
+
+        assertThat(passwordEncoder.matches("password-nueva-123", actualizado.getPassword()))
+                .isTrue();
+    }
+
+    @Test
+    void cambiarPassword_conPasswordActualIncorrecta_debeDevolver401() throws Exception {
+
+        // Arrange
+        Cookie token = login("10.0.0.7");
+
+        // Act & Assert
+        mockMvc.perform(put("/api/v1/auth/password")
+                        .cookie(token)
+                        .with(ip("10.0.0.7"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "passwordActual": "incorrecta",
+                                  "passwordNueva": "password-nueva-123"
+                                }
+                                """))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void cambiarPassword_sinAutenticacion_debeDevolver401() throws Exception {
+
+        mockMvc.perform(put("/api/v1/auth/password")
+                        .with(ip("10.0.0.8"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "passwordActual": "password-test",
+                                  "passwordNueva": "password-nueva-123"
+                                }
+                                """))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

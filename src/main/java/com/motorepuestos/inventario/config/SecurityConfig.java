@@ -118,7 +118,10 @@ public class SecurityConfig {
                                         "/api/v1/auth/logout"
                                 ).permitAll()
 
-                                .requestMatchers("/api/v1/auth/me")
+                                .requestMatchers(
+                                        "/api/v1/auth/me",
+                                        "/api/v1/auth/password"
+                                )
                                 .authenticated()
 
                                 .requestMatchers("/error").permitAll()

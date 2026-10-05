@@ -1,6 +1,7 @@
 package com.motorepuestos.inventario.auth.controller;
 
 import com.motorepuestos.inventario.DTOs.Response.UsuarioResponse;
+import com.motorepuestos.inventario.auth.dto.CambiarPasswordRequest;
 import com.motorepuestos.inventario.auth.dto.LoginRequest;
 import com.motorepuestos.inventario.auth.dto.LoginResponse;
 import com.motorepuestos.inventario.auth.service.AuthService;
@@ -17,6 +18,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -48,6 +50,16 @@ public class AuthController {
         );
 
         return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/password")
+    public ResponseEntity<Void> cambiarPassword(
+            @Valid @RequestBody CambiarPasswordRequest request
+    ) {
+
+        authService.cambiarPassword(request);
+
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/logout")

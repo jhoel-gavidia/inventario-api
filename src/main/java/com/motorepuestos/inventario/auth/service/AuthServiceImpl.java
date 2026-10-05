@@ -1,9 +1,12 @@
 package com.motorepuestos.inventario.auth.service;
 
+import com.motorepuestos.inventario.auth.dto.CambiarPasswordRequest;
 import com.motorepuestos.inventario.auth.dto.LoginRequest;
 import com.motorepuestos.inventario.auth.dto.LoginResponse;
 import com.motorepuestos.inventario.entity.Usuario;
+import com.motorepuestos.inventario.exception.BusinessException;
 import com.motorepuestos.inventario.repository.UsuarioRepository;
+import com.motorepuestos.inventario.security.SecurityUtils;
 import com.motorepuestos.inventario.security.TokenBlacklistService;
 import com.motorepuestos.inventario.service.AuditoriaService;
 import com.motorepuestos.inventario.util.JsonUtil;
@@ -17,6 +20,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +36,8 @@ public class AuthServiceImpl implements AuthService {
     private final UsuarioRepository usuarioRepository;
     private final AuditoriaService auditoriaService;
     private final JsonUtil jsonUtil;
+    private final PasswordEncoder passwordEncoder;
+    private final SecurityUtils securityUtils;
 
     private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
 
@@ -84,6 +90,33 @@ public class AuthServiceImpl implements AuthService {
                                 claims.getSubject()
                         )
                 );
+    }
+
+    @Override
+    @Transactional
+    public void cambiarPassword(CambiarPasswordRequest request) {
+
+        Usuario usuario = securityUtils.obtenerUsuarioAutenticado();
+
+        if (!passwordEncoder.matches(request.getPasswordActual(), usuario.getPassword())) {
+            throw new BadCredentialsException("La contraseña actual no es correcta");
+        }
+
+        if (passwordEncoder.matches(request.getPasswordNueva(), usuario.getPassword())) {
+            throw new BusinessException("La nueva contraseña debe ser distinta de la actual");
+        }
+
+        usuario.setPassword(passwordEncoder.encode(request.getPasswordNueva()));
+        usuarioRepository.save(usuario);
+
+        auditoriaService.registrar(
+                usuario,
+                "CAMBIAR_PASSWORD",
+                "AUTH",
+                usuario.getId(),
+                null,
+                jsonUtil.convertir(Map.of("cambio", true))
+        );
     }
 
     private Claims parseClaims(String token) {
