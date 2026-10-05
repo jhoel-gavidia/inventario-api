@@ -35,23 +35,10 @@ public class AuditoriaServiceImpl implements AuditoriaService {
             String datosAnt,
             String datosNew
     ) {
-        try {
-            Usuario usuario = securityUtils.obtenerUsuarioAutenticado();
 
-            Auditoria auditoria = new Auditoria();
-            auditoria.setUsuario(usuario);
-            auditoria.setAccion(accion);
-            auditoria.setEntidad(entidad);
-            auditoria.setEntidadId(entidadId);
-            auditoria.setDatosAnt(datosAnt);
-            auditoria.setDatosNew(datosNew);
-            auditoria.setFecha(LocalDateTime.now());
+        Usuario usuario = usuarioAutenticado();
 
-            auditoriaRepository.save(auditoria);
-        } catch (Exception e) {
-            log.error("Error al registrar auditoría: acción={}, entidad={}, id={}",
-                    accion, entidad, entidadId, e);
-        }
+        guardar(usuario, accion, entidad, entidadId, datosAnt, datosNew);
     }
 
     @Override
@@ -64,6 +51,45 @@ public class AuditoriaServiceImpl implements AuditoriaService {
             String datosAnt,
             String datosNew
     ) {
+
+        guardar(usuario, accion, entidad, entidadId, datosAnt, datosNew);
+    }
+
+    private Usuario usuarioAutenticado() {
+
+        try {
+            return securityUtils.obtenerUsuarioAutenticado();
+        } catch (RuntimeException e) {
+            log.error(
+                    "No se pudo resolver el usuario autenticado para registrar la auditoría",
+                    e
+            );
+            return null;
+        }
+    }
+
+    private void guardar(
+            Usuario usuario,
+            String accion,
+            String entidad,
+            Long entidadId,
+            String datosAnt,
+            String datosNew
+    ) {
+
+        try {
+            if (usuario == null) {
+                throw new IllegalStateException(
+                        "No hay usuario autenticado para auditar " + accion + " en " + entidad
+                );
+            }
+
+            if (entidadId == null) {
+                throw new IllegalArgumentException(
+                        "entidadId es obligatorio para auditar " + accion + " en " + entidad
+                );
+            }
+
             Auditoria auditoria = new Auditoria();
             auditoria.setUsuario(usuario);
             auditoria.setAccion(accion);
@@ -74,6 +100,16 @@ public class AuditoriaServiceImpl implements AuditoriaService {
             auditoria.setFecha(LocalDateTime.now());
 
             auditoriaRepository.save(auditoria);
+        } catch (Exception e) {
+            log.error(
+                    "No se pudo registrar la auditoría: acción={}, entidad={}, entidadId={}, usuario={}",
+                    accion,
+                    entidad,
+                    entidadId,
+                    usuario != null ? usuario.getId() : null,
+                    e
+            );
+        }
     }
 
     @Override

@@ -4,55 +4,47 @@ import com.motorepuestos.inventario.DTOs.Response.UsuarioResponse;
 import com.motorepuestos.inventario.auth.dto.LoginRequest;
 import com.motorepuestos.inventario.auth.dto.LoginResponse;
 import com.motorepuestos.inventario.auth.service.AuthService;
-import com.motorepuestos.inventario.auth.service.JwtService;
-import com.motorepuestos.inventario.security.TokenBlacklistService;
-import com.motorepuestos.inventario.service.AuditoriaService;
 import com.motorepuestos.inventario.service.UsuarioService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Duration;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("api/v1/auth")
+@RequestMapping("/api/v1/auth")
 public class AuthController {
+
+    private static final String ACCESS_TOKEN_COOKIE = "access_token";
 
     private final AuthService authService;
     private final UsuarioService usuarioService;
-    private final JwtService jwtService;
-    private final TokenBlacklistService tokenBlacklistService;
-    private final AuditoriaService auditoriaService;
 
     @PostMapping("/login")
     public ResponseEntity<Void> login(
-            @RequestBody LoginRequest request,
+            @Valid @RequestBody LoginRequest request,
             HttpServletResponse response
     ) {
-        LoginResponse loginResponse = authService.login(request);
 
-        ResponseCookie cookie = ResponseCookie.from(
-                        "access_token",
-                        loginResponse.getToken()
-                )
-                .httpOnly(true)
-                .secure(true)
-                .sameSite("None")
-                .path("/")
-                .maxAge(Duration.ofHours(2))
-                .build();
+        LoginResponse loginResponse = authService.login(request);
 
         response.addHeader(
                 HttpHeaders.SET_COOKIE,
-                cookie.toString()
+                construirCookie(loginResponse.getToken(), Duration.ofHours(2))
+                        .toString()
         );
 
         return ResponseEntity.ok().build();
@@ -64,40 +56,41 @@ public class AuthController {
             HttpServletResponse response
     ) {
 
-        String token = extraerToken(request);
+        authService.logout(extraerToken(request));
 
-        if (token != null) {
-            try {
-                tokenBlacklistService.revoke(
-                        jwtService.extractJti(token),
-                        jwtService.extractExpiration(token).getTime()
-                );
+        response.addHeader(
+                HttpHeaders.SET_COOKIE,
+                construirCookie("", Duration.ZERO)
+                        .toString()
+        );
 
-                auditoriaService.registrar(
-                        "LOGOUT",
-                        "AUTH",
-                        null,
-                        null,
-                        "{\"jti\":\"" + jwtService.extractJti(token) + "\"}"
-                );
-            } catch (Exception ignored) {
-            }
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<UsuarioResponse> me(Authentication authentication) {
+
+        UsuarioResponse usuario =
+                usuarioService.obtenerPorUsername(authentication.getName());
+
+        if (usuario == null) {
+            throw new BadCredentialsException(
+                    "El usuario del token ya no existe"
+            );
         }
 
-        ResponseCookie cookie = ResponseCookie.from("access_token", "")
+        return ResponseEntity.ok(usuario);
+    }
+
+    private ResponseCookie construirCookie(String value, Duration maxAge) {
+
+        return ResponseCookie.from(ACCESS_TOKEN_COOKIE, value)
                 .httpOnly(true)
                 .secure(true)
                 .sameSite("None")
                 .path("/")
-                .maxAge(0)
+                .maxAge(maxAge)
                 .build();
-
-        response.addHeader(
-                HttpHeaders.SET_COOKIE,
-                cookie.toString()
-        );
-
-        return ResponseEntity.noContent().build();
     }
 
     private String extraerToken(HttpServletRequest request) {
@@ -109,24 +102,11 @@ public class AuthController {
         }
 
         for (Cookie cookie : cookies) {
-            if ("access_token".equals(cookie.getName())) {
+            if (ACCESS_TOKEN_COOKIE.equals(cookie.getName())) {
                 return cookie.getValue();
             }
         }
 
         return null;
-    }
-
-    @GetMapping("/me")
-    public ResponseEntity<UsuarioResponse> me(Authentication authentication) {
-
-        UsuarioResponse usuario = usuarioService.obtenerPorUsername(authentication.getName());
-
-        if (usuario == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-
-        return ResponseEntity.ok(usuario);
     }
 }
