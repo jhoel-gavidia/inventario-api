@@ -7,14 +7,19 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
+import org.springframework.validation.method.ParameterValidationResult;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -25,7 +30,6 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
-
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(
@@ -59,6 +63,7 @@ public class GlobalExceptionHandler {
             MethodArgumentNotValidException exception,
             HttpServletRequest request
     ) {
+
         Map<String, String> errors = exception.getBindingResult()
                 .getFieldErrors()
                 .stream()
@@ -71,15 +76,37 @@ public class GlobalExceptionHandler {
 
         log.warn("Errores de validación en {}: {}", request.getRequestURI(), errors);
 
-        ErrorResponse response = ErrorResponse.builder()
-                .status(HttpStatus.BAD_REQUEST.value())
-                .message("Errores de validación")
-                .errors(errors)
-                .path(request.getRequestURI())
-                .timestamp(LocalDateTime.now())
-                .build();
+        return buildValidationResponse(errors, request);
+    }
 
-        return ResponseEntity.badRequest().body(response);
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<ErrorResponse> handleMethodValidation(
+            HandlerMethodValidationException exception,
+            HttpServletRequest request
+    ) {
+
+        Map<String, String> errors = new LinkedHashMap<>();
+
+        for (ParameterValidationResult result : exception.getParameterValidationResults()) {
+            String nombre = result.getMethodParameter() != null
+                    ? result.getMethodParameter().getParameterName()
+                    : null;
+
+            String clave = nombre != null ? nombre : "parametro";
+
+            result.getResolvableErrors().forEach(error ->
+                    errors.putIfAbsent(
+                            clave,
+                            error.getDefaultMessage() != null
+                                    ? error.getDefaultMessage()
+                                    : "Valor inválido"
+                    )
+            );
+        }
+
+        log.warn("Errores de validación en {}: {}", request.getRequestURI(), errors);
+
+        return buildValidationResponse(errors, request);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -98,15 +125,7 @@ public class GlobalExceptionHandler {
 
         log.warn("Violación de restricciones en {}: {}", request.getRequestURI(), errors);
 
-        ErrorResponse response = ErrorResponse.builder()
-                .status(HttpStatus.BAD_REQUEST.value())
-                .message("Errores de validación")
-                .errors(errors)
-                .path(request.getRequestURI())
-                .timestamp(LocalDateTime.now())
-                .build();
-
-        return ResponseEntity.badRequest().body(response);
+        return buildValidationResponse(errors, request);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
@@ -118,6 +137,23 @@ public class GlobalExceptionHandler {
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 "El cuerpo de la petición no es válido",
+                request
+        );
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponse> handleMissingParameter(
+            MissingServletRequestParameterException exception,
+            HttpServletRequest request
+    ) {
+        log.warn(
+                "Falta el parámetro '{}' en {}",
+                exception.getParameterName(),
+                request.getRequestURI()
+        );
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                "Falta el parámetro obligatorio '" + exception.getParameterName() + "'",
                 request
         );
     }
@@ -139,10 +175,51 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, message, request);
     }
 
-    @ExceptionHandler({
-            BadCredentialsException.class,
-            DisabledException.class
-    })
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotSupported(
+            HttpRequestMethodNotSupportedException exception,
+            HttpServletRequest request
+    ) {
+
+        log.warn("Método no soportado en {}: {}", request.getRequestURI(), exception.getMethod());
+
+        return buildResponse(
+                HttpStatus.METHOD_NOT_ALLOWED,
+                String.format(
+                        "El método %s no está soportado en este recurso",
+                        exception.getMethod()
+                ),
+                request
+        );
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMediaTypeNotSupported(
+            HttpMediaTypeNotSupportedException exception,
+            HttpServletRequest request
+    ) {
+        log.warn(
+                "Content-Type no soportado en {}: {}",
+                request.getRequestURI(),
+                exception.getContentType()
+        );
+        return buildResponse(
+                HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+                "El Content-Type '" + exception.getContentType() + "' no está soportado",
+                request
+        );
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFound(
+            NoResourceFoundException exception,
+            HttpServletRequest request
+    ) {
+        log.warn("Recurso no encontrado en {}", request.getRequestURI());
+        return buildResponse(HttpStatus.NOT_FOUND, "El recurso no existe", request);
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ErrorResponse> handleAuthenticationException(
             AuthenticationException exception,
             HttpServletRequest request
@@ -152,6 +229,37 @@ public class GlobalExceptionHandler {
         return buildResponse(
                 HttpStatus.UNAUTHORIZED,
                 "Credenciales inválidas",
+                request
+        );
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalState(
+            IllegalStateException exception,
+            HttpServletRequest request
+    ) {
+        log.warn(
+                "Estado inválido en {}: {}",
+                request.getRequestURI(),
+                exception.getMessage()
+        );
+        return buildResponse(
+                HttpStatus.UNAUTHORIZED,
+                exception.getMessage(),
+                request
+        );
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(
+            AccessDeniedException exception,
+            HttpServletRequest request
+    ) {
+        log.warn("Acceso denegado en {}", request.getRequestURI());
+
+        return buildResponse(
+                HttpStatus.FORBIDDEN,
+                "No tiene permisos para acceder a este recurso",
                 request
         );
     }
@@ -167,6 +275,22 @@ public class GlobalExceptionHandler {
                 "Ocurrió un error inesperado. Contacte al administrador.",
                 request
         );
+    }
+
+    private ResponseEntity<ErrorResponse> buildValidationResponse(
+            Map<String, String> errors,
+            HttpServletRequest request
+    ) {
+
+        ErrorResponse response = ErrorResponse.builder()
+                .status(HttpStatus.BAD_REQUEST.value())
+                .message("Errores de validación")
+                .errors(errors)
+                .path(request.getRequestURI())
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        return ResponseEntity.badRequest().body(response);
     }
 
     private ResponseEntity<ErrorResponse> buildResponse(

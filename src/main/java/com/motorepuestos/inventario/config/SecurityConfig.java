@@ -2,6 +2,8 @@ package com.motorepuestos.inventario.config;
 
 import com.motorepuestos.inventario.security.JwtAuthenticationFilter;
 import com.motorepuestos.inventario.security.LoginRateLimitFilter;
+import com.motorepuestos.inventario.security.RestAccessDeniedHandler;
+import com.motorepuestos.inventario.security.RestAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -34,8 +36,10 @@ public class SecurityConfig {
     private String allowedOrigin;
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final LoginRateLimitFilter loginRateLimitFilter;
     private final UserDetailsService userDetailsService;
+    private final LoginRateLimitFilter loginRateLimitFilter;
+    private final RestAuthenticationEntryPoint authenticationEntryPoint;
+    private final RestAccessDeniedHandler accessDeniedHandler;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -117,8 +121,6 @@ public class SecurityConfig {
                                 .requestMatchers("/api/v1/auth/me")
                                 .authenticated()
 
-
-
                                 .requestMatchers("/error").permitAll()
 
                                 .requestMatchers(HttpMethod.GET, "/api/v1/categorias/**")
@@ -145,6 +147,10 @@ public class SecurityConfig {
                                 .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider)
+                .exceptionHandling(handling -> handling
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler)
+                )
                 .addFilterBefore(
                         loginRateLimitFilter,
                         UsernamePasswordAuthenticationFilter.class

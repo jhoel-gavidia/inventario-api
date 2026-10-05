@@ -1,5 +1,7 @@
 package com.motorepuestos.inventario.security;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import com.motorepuestos.inventario.auth.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -11,6 +13,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -41,44 +44,69 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        String username;
+        Claims claims = parseClaims(token);
 
-        try {
-            username = jwtService.extractUsername(token);
-        } catch (Exception e) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        if (username != null
+        if (claims != null
                 && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            UserDetails userDetails =
-                    userDetailsService.loadUserByUsername(username);
-
-            if (jwtService.isTokenValid(token, userDetails)
-                    && !tokenBlacklistService.isRevoked(
-                            jwtService.extractJti(token)
-                    )) {
-
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities()
-                        );
-
-                authentication.setDetails(
-                        new WebAuthenticationDetailsSource()
-                                .buildDetails(request)
-                );
-
-                SecurityContextHolder.getContext()
-                        .setAuthentication(authentication);
-            }
+            autenticar(request, token, claims);
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private Claims parseClaims(String token) {
+
+        try {
+            return jwtService.extractClaims(token);
+        } catch (JwtException | IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private void autenticar(
+            HttpServletRequest request,
+            String token,
+            Claims claims
+    ) {
+
+        UserDetails userDetails = cargarUsuario(claims.getSubject());
+
+        if (userDetails == null) {
+            return;
+        }
+
+        if (jwtService.isTokenValid(token, userDetails)
+                && !tokenBlacklistService.isRevoked(claims.getId())) {
+
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities()
+                    );
+
+            authentication.setDetails(
+                    new WebAuthenticationDetailsSource()
+                            .buildDetails(request)
+            );
+
+            SecurityContextHolder.getContext()
+                    .setAuthentication(authentication);
+        }
+    }
+
+    private UserDetails cargarUsuario(String username) {
+
+        if (username == null) {
+            return null;
+        }
+
+        try {
+            return userDetailsService.loadUserByUsername(username);
+        } catch (UsernameNotFoundException e) {
+            return null;
+        }
     }
 
     private String extractTokenFromCookie(HttpServletRequest request) {

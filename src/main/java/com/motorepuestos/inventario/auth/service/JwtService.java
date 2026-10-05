@@ -1,5 +1,7 @@
 package com.motorepuestos.inventario.auth.service;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,53 +43,44 @@ public class JwtService {
                 .compact();
     }
 
-    public String extractUsername(String token) {
+    public Claims extractClaims(String token) {
 
         return Jwts.parser()
                 .verifyWith(secretKey)
                 .build()
                 .parseSignedClaims(token)
-                .getPayload()
-                .getSubject();
+                .getPayload();
+    }
+
+    public String extractUsername(String token) {
+        return extractClaims(token).getSubject();
     }
 
     public String extractJti(String token) {
-
-        return Jwts.parser()
-                .verifyWith(secretKey)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
-                .getId();
+        return extractClaims(token).getId();
     }
 
     public Date extractExpiration(String token) {
-
-        return Jwts.parser()
-                .verifyWith(secretKey)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
-                .getExpiration();
+        return extractClaims(token).getExpiration();
     }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
 
-        String username = extractUsername(token);
+        if (token == null || userDetails == null) {
+            return false;
+        }
 
-        return username.equals(userDetails.getUsername())
-                && !isTokenExpired(token);
-    }
+        try {
+            Claims claims = extractClaims(token);
 
-    private boolean isTokenExpired(String token) {
+            Date expirationDate = claims.getExpiration();
 
-        Date expirationDate = Jwts.parser()
-                .verifyWith(secretKey)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
-                .getExpiration();
-
-        return expirationDate.before(new Date());
+            return userDetails.getUsername().equals(claims.getSubject())
+                    && userDetails.isEnabled()
+                    && expirationDate != null
+                    && expirationDate.after(new Date());
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
     }
 }
