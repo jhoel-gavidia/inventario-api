@@ -1,6 +1,7 @@
 package com.motorepuestos.inventario.service;
 
 import com.motorepuestos.inventario.DTOs.Request.ProductoRequest;
+import com.motorepuestos.inventario.DTOs.Request.ProductoUpdateRequest;
 import com.motorepuestos.inventario.DTOs.Response.ProductoResponse;
 import com.motorepuestos.inventario.entity.Categoria;
 import com.motorepuestos.inventario.entity.Producto;
@@ -53,6 +54,7 @@ class ProductoServiceIntegrationTest extends AbstractIntegrationTest {
 
         categoria = new Categoria();
         categoria.setNombre("Filtros");
+        categoria.setEstado(true);
         categoria = categoriaRepository.save(categoria);
 
         producto = new Producto();
@@ -247,13 +249,12 @@ class ProductoServiceIntegrationTest extends AbstractIntegrationTest {
     void actualizar_debeActualizarProducto() {
 
         // Arrange
-        ProductoRequest request = crearProductoRequest(
+        ProductoUpdateRequest request = crearProductoUpdateRequest(
                 "FIL-010",
                 "Filtro de aceite premium",
                 categoria.getId(),
                 "13.00",
                 "20.00",
-                0,
                 true
         );
 
@@ -298,13 +299,12 @@ class ProductoServiceIntegrationTest extends AbstractIntegrationTest {
     void actualizar_conMismoCodigo_debeActualizarProducto() {
 
         // Arrange
-        ProductoRequest request = crearProductoRequest(
+        ProductoUpdateRequest request = crearProductoUpdateRequest(
                 "FIL-001",
                 "Filtro actualizado",
                 categoria.getId(),
                 "11.00",
                 "17.00",
-                0,
                 true
         );
 
@@ -341,13 +341,12 @@ class ProductoServiceIntegrationTest extends AbstractIntegrationTest {
 
         productoRepository.save(segundoProducto);
 
-        ProductoRequest request = crearProductoRequest(
+        ProductoUpdateRequest request = crearProductoUpdateRequest(
                 "FIL-002",
                 "Filtro actualizado",
                 categoria.getId(),
                 "11.00",
                 "17.00",
-                0,
                 true
         );
 
@@ -369,13 +368,12 @@ class ProductoServiceIntegrationTest extends AbstractIntegrationTest {
     void actualizar_conCategoriaInexistente_debeLanzarExcepcion() {
 
         // Arrange
-        ProductoRequest request = crearProductoRequest(
+        ProductoUpdateRequest request = crearProductoUpdateRequest(
                 "FIL-010",
                 "Filtro actualizado",
                 999999L,
                 "11.00",
                 "17.00",
-                0,
                 true
         );
 
@@ -397,13 +395,12 @@ class ProductoServiceIntegrationTest extends AbstractIntegrationTest {
     void actualizar_productoInexistente_debeLanzarExcepcion() {
 
         // Arrange
-        ProductoRequest request = crearProductoRequest(
+        ProductoUpdateRequest request = crearProductoUpdateRequest(
                 "FIL-010",
                 "Filtro actualizado",
                 categoria.getId(),
                 "11.00",
                 "17.00",
-                0,
                 true
         );
 
@@ -459,6 +456,26 @@ class ProductoServiceIntegrationTest extends AbstractIntegrationTest {
         request.setPrecioCompra(new BigDecimal(precioCompra));
         request.setPrecioVenta(new BigDecimal(precioVenta));
         request.setStockInicial(stockInicial);
+        request.setEstado(estado);
+
+        return request;
+    }
+
+    private ProductoUpdateRequest crearProductoUpdateRequest(
+            String codigo,
+            String nombre,
+            Long categoriaId,
+            String precioCompra,
+            String precioVenta,
+            Boolean estado
+    ) {
+        ProductoUpdateRequest request = new ProductoUpdateRequest();
+
+        request.setCodigo(codigo);
+        request.setNombre(nombre);
+        request.setCategoriaId(categoriaId);
+        request.setPrecioCompra(new BigDecimal(precioCompra));
+        request.setPrecioVenta(new BigDecimal(precioVenta));
         request.setEstado(estado);
 
         return request;

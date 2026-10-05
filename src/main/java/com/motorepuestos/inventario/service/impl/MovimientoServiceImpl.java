@@ -134,7 +134,15 @@ public class MovimientoServiceImpl implements MovimientoService {
     }
 
     private Producto obtenerProductoOrThrow(Long id) {
-        return productoRepository.findByIdForUpdate(id)
+        Producto producto = productoRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
+
+        if (!Boolean.TRUE.equals(producto.getEstado())) {
+            throw new BusinessException(
+                    "El producto está inactivo y no admite movimientos: " + producto.getCodigo()
+            );
+        }
+
+        return producto;
     }
 }

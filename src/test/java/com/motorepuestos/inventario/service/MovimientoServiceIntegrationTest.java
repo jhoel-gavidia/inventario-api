@@ -55,6 +55,7 @@ class MovimientoServiceIntegrationTest extends AbstractIntegrationTest {
     void setUp() {
         Categoria categoria = new Categoria();
         categoria.setNombre("Filtros");
+        categoria.setEstado(true);
         categoria = categoriaRepository.save(categoria);
 
         producto = new Producto();
@@ -228,6 +229,32 @@ class MovimientoServiceIntegrationTest extends AbstractIntegrationTest {
         assertThat(auditoria.getDatosNew()).isNotNull();
         assertThat(auditoria.getFecha()).isNotNull();
         assertThat(auditoria.getUsuario().getUsername()).isEqualTo("usuario.test");
+    }
+
+    @Test
+    void registrar_conProductoInactivo_debeLanzarExcepcion() {
+
+        // Arrange
+        producto.setEstado(false);
+        productoRepository.save(producto);
+
+        DetalleMovimientoRequest detalle = new DetalleMovimientoRequest();
+        detalle.setProductoId(producto.getId());
+        detalle.setCantidad(1);
+
+        MovimientoRequest request = new MovimientoRequest();
+        request.setTipo(Tipo.ENTRADA);
+        request.setDetalles(List.of(detalle));
+
+        // Act & Assert
+        assertThatThrownBy(() -> movimientoService.registrar(request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("inactivo");
+
+        Producto sinCambios = productoRepository.findById(producto.getId()).orElseThrow();
+
+        assertThat(sinCambios.getStockActual()).isEqualTo(10);
+        assertThat(movimientoRepository.findAll()).isEmpty();
     }
 
     @Test

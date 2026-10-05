@@ -1,6 +1,7 @@
 package com.motorepuestos.inventario.service.impl;
 
 import com.motorepuestos.inventario.DTOs.Request.ProductoRequest;
+import com.motorepuestos.inventario.DTOs.Request.ProductoUpdateRequest;
 import com.motorepuestos.inventario.DTOs.Response.ProductoResponse;
 import com.motorepuestos.inventario.entity.Categoria;
 import com.motorepuestos.inventario.entity.Producto;
@@ -69,7 +70,7 @@ public class ProductoServiceImpl implements ProductoService {
 
     @Override
     @Transactional
-    public ProductoResponse actualizar(Long id, ProductoRequest request) {
+    public ProductoResponse actualizar(Long id, ProductoUpdateRequest request) {
         // Escritura: con lock, para evitar carreras entre ediciones concurrentes
         Producto producto = obtenerProductoConLockOrThrow(id);
 

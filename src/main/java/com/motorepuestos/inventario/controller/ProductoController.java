@@ -1,6 +1,7 @@
 package com.motorepuestos.inventario.controller;
 
 import com.motorepuestos.inventario.DTOs.Request.ProductoRequest;
+import com.motorepuestos.inventario.DTOs.Request.ProductoUpdateRequest;
 import com.motorepuestos.inventario.DTOs.Response.ProductoResponse;
 import com.motorepuestos.inventario.service.ProductoService;
 import jakarta.validation.Valid;
@@ -61,7 +62,7 @@ public class ProductoController {
     @PutMapping("/{id}")
     public ResponseEntity<ProductoResponse> actualizar(
             @PathVariable @Positive Long id,
-            @Valid @RequestBody ProductoRequest request
+            @Valid @RequestBody ProductoUpdateRequest request
     ) {
         log.info("Actualizando producto id={}", id);
 
