@@ -7,6 +7,7 @@ import com.motorepuestos.inventario.entity.Auditoria;
 import com.motorepuestos.inventario.entity.Rol;
 import com.motorepuestos.inventario.entity.Usuario;
 import com.motorepuestos.inventario.exception.ResourceNotFoundException;
+import com.motorepuestos.inventario.exception.UnauthenticatedUserException;
 import com.motorepuestos.inventario.repository.AuditoriaRepository;
 import com.motorepuestos.inventario.repository.CategoriaRepository;
 import com.motorepuestos.inventario.repository.UsuarioRepository;
@@ -162,6 +163,68 @@ class AuditoriaServiceIntegrationTest extends AbstractIntegrationTest {
 
         assertThatThrownBy(() -> auditoriaService.obtenerPorId(999999L))
                 .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void registrar_sinUsuarioAutenticado_debeLanzarExcepcion() {
+
+        // Arrange
+        SecurityContextHolder.clearContext();
+
+        // Act & Assert
+        assertThatThrownBy(() -> auditoriaService.registrar(
+                "CREAR",
+                "CATEGORIA",
+                1L,
+                null,
+                "{}"
+        ))
+                .isInstanceOf(UnauthenticatedUserException.class);
+    }
+
+    @Test
+    void registrar_entidadIdNulo_debeLanzarExcepcion() {
+
+        assertThatThrownBy(() -> auditoriaService.registrar(
+                "CREAR",
+                "CATEGORIA",
+                null,
+                null,
+                "{}"
+        ))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void registrar_sinEntidadIdNoDebePersistirAuditoria() {
+
+        // Act
+        assertThatThrownBy(() -> auditoriaService.registrar(
+                "CREAR",
+                "CATEGORIA",
+                null,
+                null,
+                "{}"
+        ))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        // Assert
+        assertThat(auditoriaRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void registrar_debePersistirLaAuditoriaEnLaMismaTransaccionDelNegocio() {
+
+        // Arrange
+        SecurityContextHolder.clearContext();
+
+        // Act: la categoría se crea, pero sin usuario no hay auditoría posible
+        assertThatThrownBy(() -> categoriaService.crear(request("Lubricantes")))
+                .isInstanceOf(UnauthenticatedUserException.class);
+
+        // Assert: la categoría tampoco se persiste, la transacción se revierte
+        assertThat(categoriaRepository.findAll()).isEmpty();
+        assertThat(auditoriaRepository.findAll()).isEmpty();
     }
 
     private CategoriaRequest request(String nombre) {

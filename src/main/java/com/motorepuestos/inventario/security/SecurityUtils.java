@@ -2,6 +2,7 @@ package com.motorepuestos.inventario.security;
 
 import com.motorepuestos.inventario.entity.Usuario;
 import com.motorepuestos.inventario.exception.ResourceNotFoundException;
+import com.motorepuestos.inventario.exception.UnauthenticatedUserException;
 import com.motorepuestos.inventario.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -20,7 +21,7 @@ public class SecurityUtils {
 
         if (authentication == null || !authentication.isAuthenticated()
                 || "anonymousUser".equals(authentication.getPrincipal())) {
-            throw new IllegalStateException("No hay usuario autenticado en el contexto");
+            throw new UnauthenticatedUserException("No hay usuario autenticado en el contexto");
         }
 
         String username = authentication.getName();

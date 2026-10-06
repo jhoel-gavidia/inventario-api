@@ -11,7 +11,6 @@ import com.motorepuestos.inventario.service.AuditoriaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -27,7 +26,7 @@ public class AuditoriaServiceImpl implements AuditoriaService {
     private final AuditoriaMapper auditoriaMapper;
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void registrar(
             String accion,
             String entidad,
@@ -36,13 +35,15 @@ public class AuditoriaServiceImpl implements AuditoriaService {
             String datosNew
     ) {
 
-        Usuario usuario = usuarioAutenticado();
+        Usuario usuario = securityUtils.obtenerUsuarioAutenticado();
+
+        validarInvariantes(usuario, accion, entidad, entidadId);
 
         guardar(usuario, accion, entidad, entidadId, datosAnt, datosNew);
     }
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void registrar(
             Usuario usuario,
             String accion,
@@ -52,19 +53,28 @@ public class AuditoriaServiceImpl implements AuditoriaService {
             String datosNew
     ) {
 
+        validarInvariantes(usuario, accion, entidad, entidadId);
+
         guardar(usuario, accion, entidad, entidadId, datosAnt, datosNew);
     }
 
-    private Usuario usuarioAutenticado() {
+    private void validarInvariantes(
+            Usuario usuario,
+            String accion,
+            String entidad,
+            Long entidadId
+    ) {
 
-        try {
-            return securityUtils.obtenerUsuarioAutenticado();
-        } catch (RuntimeException e) {
-            log.error(
-                    "No se pudo resolver el usuario autenticado para registrar la auditoría",
-                    e
+        if (usuario == null) {
+            throw new IllegalStateException(
+                    "No hay usuario autenticado para auditar " + accion + " en " + entidad
             );
-            return null;
+        }
+
+        if (entidadId == null) {
+            throw new IllegalArgumentException(
+                    "entidadId es obligatorio para auditar " + accion + " en " + entidad
+            );
         }
     }
 
@@ -77,39 +87,16 @@ public class AuditoriaServiceImpl implements AuditoriaService {
             String datosNew
     ) {
 
-        try {
-            if (usuario == null) {
-                throw new IllegalStateException(
-                        "No hay usuario autenticado para auditar " + accion + " en " + entidad
-                );
-            }
+        Auditoria auditoria = new Auditoria();
+        auditoria.setUsuario(usuario);
+        auditoria.setAccion(accion);
+        auditoria.setEntidad(entidad);
+        auditoria.setEntidadId(entidadId);
+        auditoria.setDatosAnt(datosAnt);
+        auditoria.setDatosNew(datosNew);
+        auditoria.setFecha(LocalDateTime.now());
 
-            if (entidadId == null) {
-                throw new IllegalArgumentException(
-                        "entidadId es obligatorio para auditar " + accion + " en " + entidad
-                );
-            }
-
-            Auditoria auditoria = new Auditoria();
-            auditoria.setUsuario(usuario);
-            auditoria.setAccion(accion);
-            auditoria.setEntidad(entidad);
-            auditoria.setEntidadId(entidadId);
-            auditoria.setDatosAnt(datosAnt);
-            auditoria.setDatosNew(datosNew);
-            auditoria.setFecha(LocalDateTime.now());
-
-            auditoriaRepository.save(auditoria);
-        } catch (Exception e) {
-            log.error(
-                    "No se pudo registrar la auditoría: acción={}, entidad={}, entidadId={}, usuario={}",
-                    accion,
-                    entidad,
-                    entidadId,
-                    usuario != null ? usuario.getId() : null,
-                    e
-            );
-        }
+        auditoriaRepository.save(auditoria);
     }
 
     @Override

@@ -6,6 +6,7 @@ import com.motorepuestos.inventario.DTOs.Response.UsuarioResponse;
 import com.motorepuestos.inventario.entity.Auditoria;
 import com.motorepuestos.inventario.entity.Rol;
 import com.motorepuestos.inventario.entity.Usuario;
+import com.motorepuestos.inventario.exception.BusinessException;
 import com.motorepuestos.inventario.exception.ResourceConflictException;
 import com.motorepuestos.inventario.exception.ResourceNotFoundException;
 import com.motorepuestos.inventario.repository.AuditoriaRepository;
@@ -73,6 +74,98 @@ class UsuarioServiceIntegrationTest extends AbstractIntegrationTest {
 
         auditoriaRepository.deleteAll();
         usuarioRepository.deleteAll();
+    }
+
+    @Test
+    void eliminar_unicoAdminActivo_debeLanzarExcepcion() {
+
+        // Arrange: el usuario del setUp es ADMIN y es el único activo
+        usuario.setRol(Rol.ADMIN);
+        usuarioRepository.save(usuario);
+
+        // Act & Assert
+        assertThatThrownBy(() -> usuarioService.eliminar(usuario.getId()))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("único administrador");
+
+        Usuario sinCambios = usuarioRepository.findById(usuario.getId()).orElseThrow();
+        assertThat(sinCambios.getEstado()).isTrue();
+        assertThat(sinCambios.getRol()).isEqualTo(Rol.ADMIN);
+    }
+
+    @Test
+    void actualizar_degradarAlUnicoAdminActivo_debeLanzarExcepcion() {
+
+        // Arrange
+        usuario.setRol(Rol.ADMIN);
+        usuarioRepository.save(usuario);
+
+        UsuarioUpdateRequest request = new UsuarioUpdateRequest();
+        request.setUsername(usuario.getUsername());
+        request.setRol(Rol.USER);
+        request.setEstado(true);
+
+        // Act & Assert
+        assertThatThrownBy(() -> usuarioService.actualizar(usuario.getId(), request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("único administrador");
+
+        Usuario sinCambios = usuarioRepository.findById(usuario.getId()).orElseThrow();
+        assertThat(sinCambios.getRol()).isEqualTo(Rol.ADMIN);
+    }
+
+    @Test
+    void eliminar_adminCuandoHayOtroActivo_debepermitirse() {
+
+        // Arrange
+        usuario.setRol(Rol.ADMIN);
+        usuarioRepository.save(usuario);
+
+        Usuario segundoAdmin = new Usuario();
+        segundoAdmin.setUsername("admin.segundo");
+        segundoAdmin.setPassword(passwordEncoder.encode("password-test"));
+        segundoAdmin.setRol(Rol.ADMIN);
+        segundoAdmin.setEstado(true);
+        usuarioRepository.save(segundoAdmin);
+
+        // Act
+        usuarioService.eliminar(usuario.getId());
+
+        // Assert
+        assertThat(usuarioRepository.findById(usuario.getId()).orElseThrow().getEstado())
+                .isFalse();
+    }
+
+    @Test
+    void obtenerTodos_noDebeRetornarUsuariosInactivos() {
+
+        // Arrange
+        Usuario inactivo = new Usuario();
+        inactivo.setUsername("usuario.inactivo");
+        inactivo.setPassword(passwordEncoder.encode("password-test"));
+        inactivo.setRol(Rol.USER);
+        inactivo.setEstado(false);
+        usuarioRepository.save(inactivo);
+
+        // Act
+        List<UsuarioResponse> usuarios = usuarioService.obtenerTodos();
+
+        // Assert
+        assertThat(usuarios).hasSize(1);
+        assertThat(usuarios.get(0).getUsername()).isEqualTo("usuario.test");
+    }
+
+    @Test
+    void eliminar_usuarioYaInactivo_debeLanzarExcepcion() {
+
+        // Arrange
+        usuario.setEstado(false);
+        usuarioRepository.save(usuario);
+
+        // Act & Assert
+        assertThatThrownBy(() -> usuarioService.eliminar(usuario.getId()))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("ya inactivo");
     }
 
     @Test
