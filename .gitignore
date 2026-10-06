@@ -8,4 +8,6 @@
 
 compile-out.txt
 tools/
-
+.idea/
+HELP.md
+target/
