@@ -8,7 +8,7 @@ import com.motorepuestos.inventario.common.exception.ResourceConflictException;
 import com.motorepuestos.inventario.common.exception.ResourceNotFoundException;
 import com.motorepuestos.inventario.categoria.mapper.CategoriaMapper;
 import com.motorepuestos.inventario.categoria.repository.CategoriaRepository;
-import com.motorepuestos.inventario.producto.repository.ProductoRepository;
+import com.motorepuestos.inventario.producto.service.ProductoConsultaService;
 import com.motorepuestos.inventario.auditoria.service.AuditoriaHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,7 +23,7 @@ public class CategoriaServiceImpl implements CategoriaService {
 
     private final CategoriaRepository categoriaRepository;
     private final CategoriaMapper categoriaMapper;
-    private final ProductoRepository productoRepository;
+    private final ProductoConsultaService productoConsultaService;
     private final AuditoriaHelper auditoriaHelper;
 
 
@@ -85,7 +85,7 @@ public class CategoriaServiceImpl implements CategoriaService {
     public void eliminar(Long id) {
         Categoria categoria = obtenerCategoriaConLockOrThrow(id);
 
-        if (productoRepository.existsByCategoriaIdAndEstadoTrue(id)) {
+        if (productoConsultaService.existenActivosPorCategoria(id)) {
             throw new BusinessException(
                     "No se puede eliminar la categoría porque tiene productos activos asociados"
             );

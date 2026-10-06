@@ -8,7 +8,7 @@ import com.motorepuestos.inventario.producto.entity.Producto;
 import com.motorepuestos.inventario.common.exception.ResourceConflictException;
 import com.motorepuestos.inventario.common.exception.ResourceNotFoundException;
 import com.motorepuestos.inventario.producto.mapper.ProductoMapper;
-import com.motorepuestos.inventario.categoria.repository.CategoriaRepository;
+import com.motorepuestos.inventario.categoria.service.CategoriaConsultaService;
 import com.motorepuestos.inventario.producto.repository.ProductoRepository;
 import com.motorepuestos.inventario.auditoria.service.AuditoriaHelper;
 import lombok.RequiredArgsConstructor;
@@ -24,14 +24,14 @@ public class ProductoServiceImpl implements ProductoService {
 
     private final ProductoMapper productoMapper;
     private final ProductoRepository productoRepository;
-    private final CategoriaRepository categoriaRepository;
+    private final CategoriaConsultaService categoriaConsultaService;
     private final AuditoriaHelper auditoriaHelper;
 
     @Override
     @Transactional
     public ProductoResponse crear(ProductoRequest request) {
         validarCodigoDisponible(request.getCodigo());
-        Categoria categoria = obtenerCategoriaOrThrow(request.getCategoriaId());
+        Categoria categoria = categoriaConsultaService.obtenerActiva(request.getCategoriaId());
 
         Producto producto = productoMapper.toEntity(request);
         producto.setCategoria(categoria);
@@ -71,7 +71,7 @@ public class ProductoServiceImpl implements ProductoService {
             validarCodigoDisponible(request.getCodigo());
         }
 
-        Categoria categoria = obtenerCategoriaOrThrow(request.getCategoriaId());
+        Categoria categoria = categoriaConsultaService.obtenerActiva(request.getCategoriaId());
 
         auditoriaHelper.registrarCambio(
                 "ACTUALIZAR",
@@ -117,11 +117,6 @@ public class ProductoServiceImpl implements ProductoService {
         return productoRepository.findByIdForUpdate(id)
                 .filter(producto -> Boolean.TRUE.equals(producto.getEstado()))
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
-    }
-
-    private Categoria obtenerCategoriaOrThrow(Long categoriaId) {
-        return categoriaRepository.findByIdAndEstadoTrue(categoriaId)
-                .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada con id: " + categoriaId));
     }
 
     private void validarCodigoDisponible(String codigo) {
