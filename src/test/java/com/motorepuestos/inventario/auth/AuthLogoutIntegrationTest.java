@@ -118,8 +118,8 @@ class AuthLogoutIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isNoContent());
 
         // Assert
-        List<Auditoria> auditorias = auditoriaRepository
-                .findByEntidadAndEntidadIdOrderByFechaDesc("AUTH", usuario.getId());
+        var auditorias = auditoriaRepository
+                .findByEntidadAndEntidadIdOrderByFechaDesc("AUTH", usuario.getId(), org.springframework.data.domain.PageRequest.of(0, 10)).getContent();
 
         assertThat(auditorias)
                 .extracting(Auditoria::getAccion)

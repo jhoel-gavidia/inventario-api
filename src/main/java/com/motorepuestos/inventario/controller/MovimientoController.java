@@ -2,17 +2,20 @@ package com.motorepuestos.inventario.controller;
 
 import com.motorepuestos.inventario.DTOs.Request.MovimientoRequest;
 import com.motorepuestos.inventario.DTOs.Response.MovimientoResponse;
+import com.motorepuestos.inventario.DTOs.Response.PaginaResponse;
 import com.motorepuestos.inventario.service.MovimientoService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
-
-import java.util.List;
 
 @Slf4j
 @Validated
@@ -53,9 +56,14 @@ public class MovimientoController {
     }
 
     @GetMapping
-    public ResponseEntity<List<MovimientoResponse>> obtenerTodos() {
+    public ResponseEntity<PaginaResponse<MovimientoResponse>> obtenerTodos(
+            @RequestParam(defaultValue = "0") @PositiveOrZero int pagina,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int tamano
+    ) {
         return ResponseEntity.ok(
-                movimientoService.obtenerTodos()
+                movimientoService.obtenerTodos(
+                        PageRequest.of(pagina, tamano)
+                )
         );
     }
 }

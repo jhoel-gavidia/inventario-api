@@ -2,13 +2,13 @@ package com.motorepuestos.inventario.service;
 
 import com.motorepuestos.inventario.DTOs.Request.MovimientoRequest;
 import com.motorepuestos.inventario.DTOs.Response.MovimientoResponse;
-
-import java.util.List;
+import com.motorepuestos.inventario.DTOs.Response.PaginaResponse;
+import org.springframework.data.domain.Pageable;
 
 public interface MovimientoService {
     MovimientoResponse registrar(MovimientoRequest request);
 
     MovimientoResponse obtenerPorId(Long id);
 
-    List<MovimientoResponse> obtenerTodos();
+    PaginaResponse<MovimientoResponse> obtenerTodos(Pageable pageable);
 }

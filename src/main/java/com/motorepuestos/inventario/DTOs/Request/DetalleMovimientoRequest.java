@@ -1,5 +1,6 @@
 package com.motorepuestos.inventario.DTOs.Request;
 
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.*;
@@ -16,5 +17,6 @@ public class DetalleMovimientoRequest {
 
     @NotNull(message = "La cantidad es obligatoria")
     @Positive(message = "La cantidad debe ser mayor a cero")
+    @Max(value = 1000000, message = "La cantidad no puede superar 1_000_000")
     private Integer cantidad;
 }

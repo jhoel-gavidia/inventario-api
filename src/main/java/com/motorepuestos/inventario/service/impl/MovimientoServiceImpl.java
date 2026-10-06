@@ -3,6 +3,7 @@ package com.motorepuestos.inventario.service.impl;
 import com.motorepuestos.inventario.DTOs.Request.DetalleMovimientoRequest;
 import com.motorepuestos.inventario.DTOs.Request.MovimientoRequest;
 import com.motorepuestos.inventario.DTOs.Response.MovimientoResponse;
+import com.motorepuestos.inventario.DTOs.Response.PaginaResponse;
 import com.motorepuestos.inventario.entity.*;
 import com.motorepuestos.inventario.exception.BusinessException;
 import com.motorepuestos.inventario.exception.ResourceNotFoundException;
@@ -14,6 +15,7 @@ import com.motorepuestos.inventario.service.AuditoriaService;
 import com.motorepuestos.inventario.service.MovimientoService;
 import com.motorepuestos.inventario.util.JsonUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -73,11 +75,11 @@ public class MovimientoServiceImpl implements MovimientoService {
     }
 
     @Override
-    public List<MovimientoResponse> obtenerTodos() {
-        return movimientoRepository.findAll()
-                .stream()
-                .map(movimientoMapper::toResponse)
-                .toList();
+    public PaginaResponse<MovimientoResponse> obtenerTodos(Pageable pageable) {
+        return PaginaResponse.from(
+                movimientoRepository.findAllBy(pageable),
+                movimientoMapper::toResponse
+        );
     }
 
     private List<DetalleMovimientoRequest> ordenarDetalles(

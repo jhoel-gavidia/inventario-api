@@ -1,16 +1,20 @@
 package com.motorepuestos.inventario.controller;
 
 import com.motorepuestos.inventario.DTOs.Response.AuditoriaResponse;
+import com.motorepuestos.inventario.DTOs.Response.PaginaResponse;
 import com.motorepuestos.inventario.exception.BusinessException;
 import com.motorepuestos.inventario.service.AuditoriaService;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Slf4j
 @Validated
@@ -22,14 +26,18 @@ public class AuditoriaController {
     private final AuditoriaService auditoriaService;
 
     @GetMapping
-    public ResponseEntity<List<AuditoriaResponse>> listar(
+    public ResponseEntity<PaginaResponse<AuditoriaResponse>> listar(
             @RequestParam(required = false) String entidad,
-            @RequestParam(required = false) @Positive Long entidadId
+            @RequestParam(required = false) @Positive Long entidadId,
+            @RequestParam(defaultValue = "0") @PositiveOrZero int pagina,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int tamano
     ) {
-        log.info("Listando auditorías");
+        log.info("Listando auditorías pagina={} tamano={}", pagina, tamano);
+
+        Pageable pageable = PageRequest.of(pagina, tamano);
 
         if (entidad == null && entidadId == null) {
-            return ResponseEntity.ok(auditoriaService.listar());
+            return ResponseEntity.ok(auditoriaService.listar(pageable));
         }
 
         if (entidad == null || entidadId == null) {
@@ -39,7 +47,7 @@ public class AuditoriaController {
         }
 
         return ResponseEntity.ok(
-                auditoriaService.listarPorEntidad(entidad, entidadId)
+                auditoriaService.listarPorEntidad(entidad, entidadId, pageable)
         );
     }
 

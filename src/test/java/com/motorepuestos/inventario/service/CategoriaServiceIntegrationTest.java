@@ -342,7 +342,7 @@ class CategoriaServiceIntegrationTest extends AbstractIntegrationTest {
 
         // Assert: solo se auditó el primer borrado, el segundo no duplica
         assertThat(auditoriaRepository
-                .findByEntidadAndEntidadIdOrderByFechaDesc("CATEGORIA", categoriaId))
+                .findByEntidadAndEntidadIdOrderByFechaDesc("CATEGORIA", categoriaId, org.springframework.data.domain.PageRequest.of(0, 10)).getContent())
                 .hasSize(1);
     }
 

@@ -1,9 +1,9 @@
 package com.motorepuestos.inventario.service;
 
 import com.motorepuestos.inventario.DTOs.Response.AuditoriaResponse;
+import com.motorepuestos.inventario.DTOs.Response.PaginaResponse;
 import com.motorepuestos.inventario.entity.Usuario;
-
-import java.util.List;
+import org.springframework.data.domain.Pageable;
 
 public interface AuditoriaService {
 
@@ -24,9 +24,13 @@ public interface AuditoriaService {
             String datosNew
     );
 
-    List<AuditoriaResponse> listar();
+    PaginaResponse<AuditoriaResponse> listar(Pageable pageable);
 
-    List<AuditoriaResponse> listarPorEntidad(String entidad, Long entidadId);
+    PaginaResponse<AuditoriaResponse> listarPorEntidad(
+            String entidad,
+            Long entidadId,
+            Pageable pageable
+    );
 
     AuditoriaResponse obtenerPorId(Long id);
 }

@@ -11,6 +11,7 @@ public record AuditoriaResponse(
         Long entidadId,
         String datosAnt,
         String datosNew,
+        @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
         LocalDateTime fecha
 ) {
 }

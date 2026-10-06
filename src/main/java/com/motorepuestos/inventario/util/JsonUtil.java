@@ -1,6 +1,5 @@
 package com.motorepuestos.inventario.util;
 
-import tools.jackson.databind.DatabindException;
 import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +18,7 @@ public class JsonUtil {
         }
         try {
             return objectMapper.writeValueAsString(objeto);
-        } catch (DatabindException e) {
+        } catch (Exception e) {
             log.warn("No se pudo convertir el objeto a JSON: {}", e.getMessage());
             return "{\"error\":\"No se pudo serializar el objeto\"}";
         }

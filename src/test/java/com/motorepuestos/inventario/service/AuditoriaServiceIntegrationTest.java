@@ -88,14 +88,14 @@ class AuditoriaServiceIntegrationTest extends AbstractIntegrationTest {
         );
 
         // Act
-        List<AuditoriaResponse> auditorias = auditoriaService.listar();
+        var pagina = auditoriaService.listar(org.springframework.data.domain.PageRequest.of(0, 20));
 
         // Assert
-        assertThat(auditorias).hasSize(2);
-        assertThat(auditorias.get(0).entidadId()).isEqualTo(creada.getId());
-        assertThat(auditorias.get(0).accion()).isEqualTo("CREAR");
-        assertThat(auditorias.get(0).entidad()).isEqualTo("CATEGORIA");
-        assertThat(auditorias.get(0).username()).isEqualTo("usuario.auditoria");
+        assertThat(pagina.contenido()).hasSize(2);
+        assertThat(pagina.contenido().get(0).entidadId()).isEqualTo(creada.getId());
+        assertThat(pagina.contenido().get(0).accion()).isEqualTo("CREAR");
+        assertThat(pagina.contenido().get(0).entidad()).isEqualTo("CATEGORIA");
+        assertThat(pagina.contenido().get(0).username()).isEqualTo("usuario.auditoria");
     }
 
     @Test
@@ -107,8 +107,8 @@ class AuditoriaServiceIntegrationTest extends AbstractIntegrationTest {
         );
 
         // Act
-        List<AuditoriaResponse> auditorias =
-                auditoriaService.listarPorEntidad("CATEGORIA", creada.getId());
+        var auditorias =
+                auditoriaService.listarPorEntidad("CATEGORIA", creada.getId(), org.springframework.data.domain.PageRequest.of(0, 10)).contenido();
 
         // Assert
         assertThat(auditorias).hasSize(1);
@@ -128,8 +128,8 @@ class AuditoriaServiceIntegrationTest extends AbstractIntegrationTest {
     void listarPorEntidad_sinRegistros_debeRetornarListaVacia() {
 
         // Act
-        List<AuditoriaResponse> auditorias =
-                auditoriaService.listarPorEntidad("PRODUCTO", 999999L);
+        var auditorias =
+                auditoriaService.listarPorEntidad("PRODUCTO", 999999L, org.springframework.data.domain.PageRequest.of(0, 10)).contenido();
 
         // Assert
         assertThat(auditorias).isEmpty();
@@ -144,8 +144,8 @@ class AuditoriaServiceIntegrationTest extends AbstractIntegrationTest {
         );
 
         AuditoriaResponse registrada =
-                auditoriaService.listarPorEntidad("CATEGORIA", creada.getId())
-                        .get(0);
+                auditoriaService.listarPorEntidad("CATEGORIA", creada.getId(), org.springframework.data.domain.PageRequest.of(0, 10))
+                        .contenido().get(0);
 
         // Act
         AuditoriaResponse auditoria =

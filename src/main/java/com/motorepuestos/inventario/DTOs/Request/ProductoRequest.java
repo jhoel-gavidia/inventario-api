@@ -25,14 +25,17 @@ public class ProductoRequest {
 
     @NotNull(message = "El precio de compra es obligatorio")
     @DecimalMin(value = "0.0", inclusive = false, message = "El precio de compra debe ser mayor a 0")
+    @Digits(integer = 12, fraction = 2)
     private BigDecimal precioCompra;
 
     @NotNull(message = "El precio de venta es obligatorio")
     @DecimalMin(value = "0.0", inclusive = false, message = "El precio de venta debe ser mayor a 0")
+    @Digits(integer = 12, fraction = 2)
     private BigDecimal precioVenta;
 
     @NotNull(message = "El stock inicial es obligatorio")
     @PositiveOrZero(message = "El stock inicial no puede ser negativo")
+    @Max(value = 1000000000, message = "El stock inicial no puede superar 1_000_000_000")
     private Integer stockInicial;
 
     @NotNull(message = "El estado es obligatorio")

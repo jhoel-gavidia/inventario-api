@@ -215,8 +215,8 @@ class MovimientoServiceIntegrationTest extends AbstractIntegrationTest {
         assertThat(response).isNotNull();
         assertThat(response.getId()).isNotNull();
 
-        List<Auditoria> auditorias = auditoriaRepository
-                .findByEntidadAndEntidadIdOrderByFechaDesc("MOVIMIENTO", response.getId());
+        var auditorias = auditoriaRepository
+                .findByEntidadAndEntidadIdOrderByFechaDesc("MOVIMIENTO", response.getId(), org.springframework.data.domain.PageRequest.of(0, 5)).getContent();
 
         assertThat(auditorias).hasSize(1);
 
@@ -420,7 +420,7 @@ class MovimientoServiceIntegrationTest extends AbstractIntegrationTest {
         movimientoService.registrar(salida);
 
         // Act
-        List<MovimientoResponse> movimientos = movimientoService.obtenerTodos();
+        var movimientos = movimientoService.obtenerTodos(org.springframework.data.domain.PageRequest.of(0, 20)).contenido();
 
         // Assert
         assertThat(movimientos).hasSize(2);

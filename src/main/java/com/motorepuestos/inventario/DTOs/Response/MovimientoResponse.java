@@ -17,6 +17,7 @@ public class MovimientoResponse {
 
     private final Tipo tipo;
 
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private final LocalDateTime fecha;
 
     private final List<DetalleMovimientoResponse> detalles;

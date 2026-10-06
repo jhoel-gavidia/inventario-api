@@ -1,6 +1,7 @@
 package com.motorepuestos.inventario.service.impl;
 
 import com.motorepuestos.inventario.DTOs.Response.AuditoriaResponse;
+import com.motorepuestos.inventario.DTOs.Response.PaginaResponse;
 import com.motorepuestos.inventario.entity.Auditoria;
 import com.motorepuestos.inventario.entity.Usuario;
 import com.motorepuestos.inventario.exception.ResourceNotFoundException;
@@ -10,11 +11,11 @@ import com.motorepuestos.inventario.security.SecurityUtils;
 import com.motorepuestos.inventario.service.AuditoriaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -101,21 +102,28 @@ public class AuditoriaServiceImpl implements AuditoriaService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<AuditoriaResponse> listar() {
-        return auditoriaRepository.findAllByOrderByFechaDesc()
-                .stream()
-                .map(auditoriaMapper::toResponse)
-                .toList();
+    public PaginaResponse<AuditoriaResponse> listar(Pageable pageable) {
+        return PaginaResponse.from(
+                auditoriaRepository.findAllByOrderByFechaDesc(pageable),
+                auditoriaMapper::toResponse
+        );
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<AuditoriaResponse> listarPorEntidad(String entidad, Long entidadId) {
-        return auditoriaRepository
-                .findByEntidadAndEntidadIdOrderByFechaDesc(entidad, entidadId)
-                .stream()
-                .map(auditoriaMapper::toResponse)
-                .toList();
+    public PaginaResponse<AuditoriaResponse> listarPorEntidad(
+            String entidad,
+            Long entidadId,
+            Pageable pageable
+    ) {
+        return PaginaResponse.from(
+                auditoriaRepository.findByEntidadAndEntidadIdOrderByFechaDesc(
+                        entidad,
+                        entidadId,
+                        pageable
+                ),
+                auditoriaMapper::toResponse
+        );
     }
 
     @Override

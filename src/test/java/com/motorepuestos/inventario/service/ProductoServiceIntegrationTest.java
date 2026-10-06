@@ -205,7 +205,7 @@ class ProductoServiceIntegrationTest extends AbstractIntegrationTest {
 
         // Assert
         assertThat(auditoriaRepository
-                .findByEntidadAndEntidadIdOrderByFechaDesc("PRODUCTO", productoId))
+                .findByEntidadAndEntidadIdOrderByFechaDesc("PRODUCTO", productoId, org.springframework.data.domain.PageRequest.of(0, 10)).getContent())
                 .hasSize(1);
     }
 
