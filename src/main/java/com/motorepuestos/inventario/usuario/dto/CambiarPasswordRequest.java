@@ -1,4 +1,4 @@
-package com.motorepuestos.inventario.auth.dto;
+package com.motorepuestos.inventario.usuario.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

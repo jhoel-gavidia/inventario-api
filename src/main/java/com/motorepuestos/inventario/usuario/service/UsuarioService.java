@@ -1,5 +1,6 @@
 package com.motorepuestos.inventario.usuario.service;
 
+import com.motorepuestos.inventario.usuario.dto.CambiarPasswordRequest;
 import com.motorepuestos.inventario.usuario.dto.UsuarioRequest;
 import com.motorepuestos.inventario.usuario.dto.UsuarioUpdateRequest;
 import com.motorepuestos.inventario.usuario.dto.UsuarioResponse;
@@ -18,5 +19,7 @@ public interface UsuarioService {
     UsuarioResponse obtenerPorUsername(String username);
 
     void eliminar(Long id);
+
+    void cambiarPassword(CambiarPasswordRequest request);
 
 }

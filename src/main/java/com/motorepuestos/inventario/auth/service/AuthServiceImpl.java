@@ -1,12 +1,9 @@
 package com.motorepuestos.inventario.auth.service;
 
-import com.motorepuestos.inventario.auth.dto.CambiarPasswordRequest;
 import com.motorepuestos.inventario.auth.dto.LoginRequest;
 import com.motorepuestos.inventario.auth.dto.LoginResponse;
 import com.motorepuestos.inventario.usuario.entity.Usuario;
-import com.motorepuestos.inventario.common.exception.BusinessException;
 import com.motorepuestos.inventario.usuario.repository.UsuarioRepository;
-import com.motorepuestos.inventario.common.security.SecurityUtils;
 import com.motorepuestos.inventario.common.security.TokenBlacklistService;
 import com.motorepuestos.inventario.auditoria.service.AuditoriaHelper;
 import io.jsonwebtoken.Claims;
@@ -15,11 +12,9 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,8 +29,6 @@ public class AuthServiceImpl implements AuthService {
     private final TokenBlacklistService tokenBlacklistService;
     private final UsuarioRepository usuarioRepository;
     private final AuditoriaHelper auditoriaHelper;
-    private final PasswordEncoder passwordEncoder;
-    private final SecurityUtils securityUtils;
 
     private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
 
@@ -88,33 +81,6 @@ public class AuthServiceImpl implements AuthService {
                                 claims.getSubject()
                         )
                 );
-    }
-
-    @Override
-    @Transactional
-    public void cambiarPassword(CambiarPasswordRequest request) {
-
-        Usuario usuario = securityUtils.obtenerUsuarioAutenticado();
-
-        if (!passwordEncoder.matches(request.getPasswordActual(), usuario.getPassword())) {
-            throw new BadCredentialsException("La contraseña actual no es correcta");
-        }
-
-        if (passwordEncoder.matches(request.getPasswordNueva(), usuario.getPassword())) {
-            throw new BusinessException("La nueva contraseña debe ser distinta de la actual");
-        }
-
-        usuario.setPassword(passwordEncoder.encode(request.getPasswordNueva()));
-        usuarioRepository.save(usuario);
-
-        auditoriaHelper.registrar(
-                usuario,
-                "CAMBIAR_PASSWORD",
-                "AUTH",
-                usuario.getId(),
-                null,
-                Map.of("cambio", true)
-        );
     }
 
     private Claims parseClaims(String token) {

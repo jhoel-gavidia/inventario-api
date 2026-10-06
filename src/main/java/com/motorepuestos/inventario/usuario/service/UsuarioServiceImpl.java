@@ -1,5 +1,6 @@
 package com.motorepuestos.inventario.usuario.service;
 
+import com.motorepuestos.inventario.usuario.dto.CambiarPasswordRequest;
 import com.motorepuestos.inventario.usuario.dto.UsuarioRequest;
 import com.motorepuestos.inventario.usuario.dto.UsuarioUpdateRequest;
 import com.motorepuestos.inventario.usuario.dto.UsuarioResponse;
@@ -13,11 +14,13 @@ import com.motorepuestos.inventario.usuario.repository.UsuarioRepository;
 import com.motorepuestos.inventario.common.security.SecurityUtils;
 import com.motorepuestos.inventario.auditoria.service.AuditoriaHelper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -122,6 +125,33 @@ public class UsuarioServiceImpl implements UsuarioService {
                 usuario,
                 usuarioMapper::toResponse,
                 () -> usuario.setEstado(false)
+        );
+    }
+
+    @Override
+    @Transactional
+    public void cambiarPassword(CambiarPasswordRequest request) {
+
+        Usuario usuario = securityUtils.obtenerUsuarioAutenticado();
+
+        if (!passwordEncoder.matches(request.getPasswordActual(), usuario.getPassword())) {
+            throw new BadCredentialsException("La contraseña actual no es correcta");
+        }
+
+        if (passwordEncoder.matches(request.getPasswordNueva(), usuario.getPassword())) {
+            throw new BusinessException("La nueva contraseña debe ser distinta de la actual");
+        }
+
+        usuario.setPassword(passwordEncoder.encode(request.getPasswordNueva()));
+        usuarioRepository.save(usuario);
+
+        auditoriaHelper.registrar(
+                usuario,
+                "CAMBIAR_PASSWORD",
+                "AUTH",
+                usuario.getId(),
+                null,
+                Map.of("cambio", true)
         );
     }
 
