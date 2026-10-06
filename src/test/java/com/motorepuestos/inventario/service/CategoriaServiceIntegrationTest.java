@@ -270,6 +270,83 @@ class CategoriaServiceIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void crear_conNombreDeCategoriaEliminada_debePermitirReutilizarlo() {
+
+        // Arrange
+        categoriaService.eliminar(categoria.getId());
+
+        // Act
+        CategoriaResponse reutilizada =
+                categoriaService.crear(crearCategoriaRequest("Filtros"));
+
+        // Assert
+        assertThat(reutilizada.getNombre()).isEqualTo("Filtros");
+        assertThat(reutilizada.getEstado()).isTrue();
+    }
+
+    @Test
+    void obtenerTodos_noDebeRetornarCategoriasEliminadas() {
+
+        // Arrange
+        categoriaService.eliminar(categoria.getId());
+
+        CategoriaRequest request = crearCategoriaRequest("Filtros");
+
+        categoriaService.crear(request);
+
+        // Act
+        List<CategoriaResponse> categorias = categoriaService.obtenerTodos();
+
+        // Assert
+        assertThat(categorias).hasSize(1);
+        assertThat(categorias.get(0).getNombre()).isEqualTo("Filtros");
+        assertThat(categorias.get(0).getEstado()).isTrue();
+    }
+
+    @Test
+    void obtenerPorId_categoriaEliminada_debeLanzarExcepcion() {
+
+        // Arrange
+        categoriaService.eliminar(categoria.getId());
+
+        // Act & Assert
+        assertThatThrownBy(() -> categoriaService.obtenerPorId(categoria.getId()))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void actualizar_categoriaEliminada_debeLanzarExcepcion() {
+
+        // Arrange
+        categoriaService.eliminar(categoria.getId());
+
+        // Act & Assert
+        assertThatThrownBy(() -> categoriaService.actualizar(
+                categoria.getId(),
+                crearCategoriaRequest("Renombrada")
+        ))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void eliminar_dosVeces_noDebeDuplicarAuditoria() {
+
+        // Arrange
+        Long categoriaId = categoria.getId();
+
+        categoriaService.eliminar(categoriaId);
+
+        // Act
+        assertThatThrownBy(() -> categoriaService.eliminar(categoriaId))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        // Assert: solo se auditó el primer borrado, el segundo no duplica
+        assertThat(auditoriaRepository
+                .findByEntidadAndEntidadIdOrderByFechaDesc("CATEGORIA", categoriaId))
+                .hasSize(1);
+    }
+
+    @Test
     void eliminar_debeRealizarSoftDelete() {
 
         // Arrange

@@ -60,7 +60,7 @@ public class CategoriaServiceImpl implements CategoriaService {
 
     @Override
     public List<CategoriaResponse> obtenerTodos() {
-        return categoriaRepository.findAll()
+        return categoriaRepository.findByEstadoTrueOrderByNombreAsc()
                 .stream()
                 .map(categoriaMapper::toResponse)
                 .toList();
@@ -69,7 +69,7 @@ public class CategoriaServiceImpl implements CategoriaService {
     @Override
     @Transactional
     public CategoriaResponse actualizar(Long id, CategoriaRequest request) {
-        Categoria categoria = obtenerCategoriaOrThrow(id);
+        Categoria categoria = obtenerCategoriaConLockOrThrow(id);
 
         CategoriaResponse datosAntResponse = categoriaMapper.toResponse(categoria);
 
@@ -97,7 +97,7 @@ public class CategoriaServiceImpl implements CategoriaService {
     @Override
     @Transactional
     public void eliminar(Long id) {
-        Categoria categoria = obtenerCategoriaOrThrow(id);
+        Categoria categoria = obtenerCategoriaConLockOrThrow(id);
 
         if (productoRepository.existsByCategoriaIdAndEstadoTrue(id)) {
             throw new BusinessException(
@@ -121,12 +121,18 @@ public class CategoriaServiceImpl implements CategoriaService {
     }
 
     private Categoria obtenerCategoriaOrThrow(Long id) {
-        return categoriaRepository.findById(id)
+        return categoriaRepository.findByIdAndEstadoTrue(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada con id: " + id));
+    }
+
+    private Categoria obtenerCategoriaConLockOrThrow(Long id) {
+        return categoriaRepository.findByIdForUpdate(id)
+                .filter(categoria -> Boolean.TRUE.equals(categoria.getEstado()))
                 .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada con id: " + id));
     }
 
     private void validarNombreDisponible(String nombre) {
-        if (categoriaRepository.existsByNombre(nombre)) {
+        if (categoriaRepository.existsByNombreAndEstadoTrue(nombre)) {
             throw new ResourceConflictException("El nombre de la categoría ya existe");
         }
     }

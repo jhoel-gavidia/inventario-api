@@ -62,7 +62,7 @@ public class ProductoServiceImpl implements ProductoService {
 
     @Override
     public List<ProductoResponse> obtenerTodos() {
-        return productoRepository.findAll()
+        return productoRepository.findByEstadoTrue()
                 .stream()
                 .map(productoMapper::toResponse)
                 .toList();
@@ -126,22 +126,23 @@ public class ProductoServiceImpl implements ProductoService {
     }
 
     private Producto obtenerProductoSinLockOrThrow(Long id) {
-        return productoRepository.findById(id)
+        return productoRepository.findByIdAndEstadoTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
     }
 
     private Producto obtenerProductoConLockOrThrow(Long id) {
         return productoRepository.findByIdForUpdate(id)
+                .filter(producto -> Boolean.TRUE.equals(producto.getEstado()))
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
     }
 
     private Categoria obtenerCategoriaOrThrow(Long categoriaId) {
-        return categoriaRepository.findById(categoriaId)
+        return categoriaRepository.findByIdAndEstadoTrue(categoriaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada con id: " + categoriaId));
     }
 
     private void validarCodigoDisponible(String codigo) {
-        if (productoRepository.existsByCodigo(codigo)) {
+        if (productoRepository.existsByCodigoAndEstadoTrue(codigo)) {
             throw new ResourceConflictException("El código del producto ya existe: " + codigo);
         }
     }

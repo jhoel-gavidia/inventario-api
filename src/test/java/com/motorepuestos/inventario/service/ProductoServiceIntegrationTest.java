@@ -93,6 +93,123 @@ class ProductoServiceIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void obtenerTodos_noDebeRetornarProductosEliminados() {
+
+        // Arrange
+        productoService.eliminar(producto.getId());
+
+        productoService.crear(crearProductoRequest(
+                "FIL-002",
+                "Filtro de aire",
+                categoria.getId(),
+                "8.00",
+                "12.00",
+                10,
+                true
+        ));
+
+        // Act
+        List<ProductoResponse> productos = productoService.obtenerTodos();
+
+        // Assert
+        assertThat(productos).hasSize(1);
+        assertThat(productos.get(0).getCodigo()).isEqualTo("FIL-002");
+    }
+
+    @Test
+    void obtenerPorId_productoEliminado_debeLanzarExcepcion() {
+
+        // Arrange
+        productoService.eliminar(producto.getId());
+
+        // Act & Assert
+        assertThatThrownBy(() -> productoService.obtenerPorId(producto.getId()))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void crear_conCategoriaInactiva_debeLanzarExcepcion() {
+
+        // Arrange
+        categoria.setEstado(false);
+        categoriaRepository.save(categoria);
+
+        ProductoRequest request = crearProductoRequest(
+                "FIL-002",
+                "Filtro de aire",
+                categoria.getId(),
+                "8.00",
+                "12.00",
+                10,
+                true
+        );
+
+        // Act & Assert
+        assertThatThrownBy(() -> productoService.crear(request))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void actualizar_conCategoriaInactiva_debeLanzarExcepcion() {
+
+        // Arrange
+        categoria.setEstado(false);
+        categoriaRepository.save(categoria);
+
+        ProductoUpdateRequest request = crearProductoUpdateRequest(
+                "FIL-001",
+                "Filtro de aceite",
+                categoria.getId(),
+                "10.00",
+                "15.00",
+                true
+        );
+
+        // Act & Assert
+        assertThatThrownBy(() -> productoService.actualizar(producto.getId(), request))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void crear_conCodigoDeProductoEliminado_debePermitirReutilizarlo() {
+
+        // Arrange
+        productoService.eliminar(producto.getId());
+
+        // Act
+        ProductoResponse reutilizado = productoService.crear(crearProductoRequest(
+                "FIL-001",
+                "Filtro de aceite nuevo",
+                categoria.getId(),
+                "10.00",
+                "15.00",
+                10,
+                true
+        ));
+
+        // Assert
+        assertThat(reutilizado.getCodigo()).isEqualTo("FIL-001");
+    }
+
+    @Test
+    void eliminar_dosVeces_noDebeDuplicarAuditoria() {
+
+        // Arrange
+        Long productoId = producto.getId();
+
+        productoService.eliminar(productoId);
+
+        // Act
+        assertThatThrownBy(() -> productoService.eliminar(productoId))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        // Assert
+        assertThat(auditoriaRepository
+                .findByEntidadAndEntidadIdOrderByFechaDesc("PRODUCTO", productoId))
+                .hasSize(1);
+    }
+
+    @Test
     void crear_debeGuardarProducto() {
 
         // Arrange
