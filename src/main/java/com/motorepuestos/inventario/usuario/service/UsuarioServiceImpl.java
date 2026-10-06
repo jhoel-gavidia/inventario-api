@@ -147,15 +147,17 @@ public class UsuarioServiceImpl implements UsuarioService {
             throw new BusinessException("No se puede desactivar un usuario ya inactivo");
         }
 
-        boolean eraAdminActivo = usuario.getRol() == Rol.ADMIN && !yaEstaInactivo;
+        Rol rolActual = usuario.getRol();
 
-        boolean dejaDeSerAdminActivo = eraAdminActivo
-                && (nuevoRol != Rol.ADMIN || !nuevoEstado);
+        boolean dejaDeSerRolCriticoActivo = rolActual.exigePresencia()
+                && !yaEstaInactivo
+                && (nuevoRol != rolActual || !nuevoEstado);
 
-        if (dejaDeSerAdminActivo
-                && usuarioRepository.countByRolAndEstadoTrue(Rol.ADMIN) <= 1) {
+        if (dejaDeSerRolCriticoActivo
+                && usuarioRepository.countByRolAndEstadoTrue(rolActual) <= 1) {
             throw new BusinessException(
-                    "No se puede desactivar ni degradar al único administrador activo"
+                    "No se puede desactivar ni degradar al único "
+                            + rolActual.descripcion() + " activo"
             );
         }
     }
