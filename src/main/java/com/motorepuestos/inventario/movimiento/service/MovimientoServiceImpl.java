@@ -12,7 +12,7 @@ import com.motorepuestos.inventario.movimiento.entity.DetalleMovimiento;
 import com.motorepuestos.inventario.movimiento.entity.Movimiento;
 import com.motorepuestos.inventario.producto.entity.Producto;
 import com.motorepuestos.inventario.movimiento.repository.MovimientoRepository;
-import com.motorepuestos.inventario.producto.repository.ProductoRepository;
+import com.motorepuestos.inventario.producto.service.ProductoStockService;
 import com.motorepuestos.inventario.common.security.SecurityUtils;
 import com.motorepuestos.inventario.auditoria.service.AuditoriaHelper;
 import com.motorepuestos.inventario.usuario.entity.Usuario;
@@ -33,7 +33,7 @@ import java.util.Set;
 public class MovimientoServiceImpl implements MovimientoService {
 
     private final MovimientoRepository movimientoRepository;
-    private final ProductoRepository productoRepository;
+    private final ProductoStockService productoStockService;
     private final MovimientoMapper movimientoMapper;
     private final SecurityUtils securityUtils;
     private final AuditoriaHelper auditoriaHelper;
@@ -110,7 +110,9 @@ public class MovimientoServiceImpl implements MovimientoService {
     private DetalleMovimiento construirDetalle(
             Movimiento movimiento, Tipo tipo, DetalleMovimientoRequest detalleRequest
     ) {
-        Producto producto = obtenerProductoOrThrow(detalleRequest.getProductoId());
+        Producto producto = productoStockService.obtenerBloqueadoParaMovimiento(
+                detalleRequest.getProductoId()
+        );
         Integer cantidad = validarCantidad(detalleRequest.getCantidad());
 
         actualizarStock(producto, tipo, cantidad);
@@ -145,18 +147,5 @@ public class MovimientoServiceImpl implements MovimientoService {
     private Movimiento obtenerMovimientoOrThrow(Long id) {
         return movimientoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Movimiento no encontrado con id: " + id));
-    }
-
-    private Producto obtenerProductoOrThrow(Long id) {
-        Producto producto = productoRepository.findByIdForUpdate(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
-
-        if (!Boolean.TRUE.equals(producto.getEstado())) {
-            throw new BusinessException(
-                    "El producto está inactivo y no admite movimientos: " + producto.getCodigo()
-            );
-        }
-
-        return producto;
     }
 }
