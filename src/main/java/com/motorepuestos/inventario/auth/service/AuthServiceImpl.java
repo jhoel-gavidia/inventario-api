@@ -8,8 +8,7 @@ import com.motorepuestos.inventario.common.exception.BusinessException;
 import com.motorepuestos.inventario.usuario.repository.UsuarioRepository;
 import com.motorepuestos.inventario.common.security.SecurityUtils;
 import com.motorepuestos.inventario.common.security.TokenBlacklistService;
-import com.motorepuestos.inventario.auditoria.service.AuditoriaService;
-import com.motorepuestos.inventario.common.util.JsonUtil;
+import com.motorepuestos.inventario.auditoria.service.AuditoriaHelper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
@@ -34,8 +33,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtService jwtService;
     private final TokenBlacklistService tokenBlacklistService;
     private final UsuarioRepository usuarioRepository;
-    private final AuditoriaService auditoriaService;
-    private final JsonUtil jsonUtil;
+    private final AuditoriaHelper auditoriaHelper;
     private final PasswordEncoder passwordEncoder;
     private final SecurityUtils securityUtils;
 
@@ -109,13 +107,13 @@ public class AuthServiceImpl implements AuthService {
         usuario.setPassword(passwordEncoder.encode(request.getPasswordNueva()));
         usuarioRepository.save(usuario);
 
-        auditoriaService.registrar(
+        auditoriaHelper.registrar(
                 usuario,
                 "CAMBIAR_PASSWORD",
                 "AUTH",
                 usuario.getId(),
                 null,
-                jsonUtil.convertir(Map.of("cambio", true))
+                Map.of("cambio", true)
         );
     }
 
@@ -133,13 +131,13 @@ public class AuthServiceImpl implements AuthService {
         try {
             String jti = jwtService.extractJti(token);
 
-            auditoriaService.registrar(
+            auditoriaHelper.registrar(
                     usuario,
                     accion,
                     "AUTH",
                     usuario.getId(),
                     null,
-                    jsonUtil.convertir(Map.of("jti", jti))
+                    Map.of("jti", jti)
             );
         } catch (JwtException | IllegalArgumentException e) {
             log.warn(

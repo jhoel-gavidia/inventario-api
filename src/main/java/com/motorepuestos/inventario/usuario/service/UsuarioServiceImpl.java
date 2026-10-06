@@ -11,8 +11,7 @@ import com.motorepuestos.inventario.common.exception.ResourceNotFoundException;
 import com.motorepuestos.inventario.usuario.mapper.UsuarioMapper;
 import com.motorepuestos.inventario.usuario.repository.UsuarioRepository;
 import com.motorepuestos.inventario.common.security.SecurityUtils;
-import com.motorepuestos.inventario.auditoria.service.AuditoriaService;
-import com.motorepuestos.inventario.common.util.JsonUtil;
+import com.motorepuestos.inventario.auditoria.service.AuditoriaHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -28,8 +27,7 @@ public class UsuarioServiceImpl implements UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final UsuarioMapper usuarioMapper;
     private final PasswordEncoder passwordEncoder;
-    private final AuditoriaService auditoriaService;
-    private final JsonUtil jsonUtil;
+    private final AuditoriaHelper auditoriaHelper;
     private final SecurityUtils securityUtils;
 
     @Override
@@ -48,13 +46,7 @@ public class UsuarioServiceImpl implements UsuarioService {
 
         UsuarioResponse response = usuarioMapper.toResponse(usuario);
 
-        auditoriaService.registrar(
-                "CREAR",
-                "USUARIO",
-                usuario.getId(),
-                null,
-                jsonUtil.convertir(response)
-        );
+        auditoriaHelper.registrarCreacion("CREAR", "USUARIO", usuario.getId(), response);
 
         return response;
     }
@@ -83,29 +75,26 @@ public class UsuarioServiceImpl implements UsuarioService {
 
         validarCambioDeAcceso(usuario, request.getRol(), request.getEstado());
 
-        UsuarioResponse datosAntResponse = usuarioMapper.toResponse(usuario);
-
         if (!usuario.getUsername().equals(request.getUsername())
                 && usuarioRepository.existsByUsername(request.getUsername())) {
             throw new ResourceConflictException("El username ya existe");
         }
 
-        usuario.setUsername(request.getUsername());
-        usuario.setRol(request.getRol());
-        usuario.setEstado(request.getEstado());
-
-        UsuarioResponse datosNewResponse = usuarioMapper.toResponse(usuario);
-
-        auditoriaService.registrar(
+        auditoriaHelper.registrarCambio(
                 actor,
                 "ACTUALIZAR",
                 "USUARIO",
-                usuario.getId(),
-                jsonUtil.convertir(datosAntResponse),
-                jsonUtil.convertir(datosNewResponse)
+                id,
+                usuario,
+                usuarioMapper::toResponse,
+                () -> {
+                    usuario.setUsername(request.getUsername());
+                    usuario.setRol(request.getRol());
+                    usuario.setEstado(request.getEstado());
+                }
         );
 
-        return datosNewResponse;
+        return usuarioMapper.toResponse(usuario);
     }
 
     @Override
@@ -125,19 +114,14 @@ public class UsuarioServiceImpl implements UsuarioService {
 
         validarCambioDeAcceso(usuario, usuario.getRol(), false);
 
-        UsuarioResponse datosAntResponse = usuarioMapper.toResponse(usuario);
-
-        usuario.setEstado(false);
-
-        UsuarioResponse datosNewResponse = usuarioMapper.toResponse(usuario);
-
-        auditoriaService.registrar(
+        auditoriaHelper.registrarCambio(
                 actor,
                 "ELIMINAR",
                 "USUARIO",
-                usuario.getId(),
-                jsonUtil.convertir(datosAntResponse),
-                jsonUtil.convertir(datosNewResponse)
+                id,
+                usuario,
+                usuarioMapper::toResponse,
+                () -> usuario.setEstado(false)
         );
     }
 

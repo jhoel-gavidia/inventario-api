@@ -10,8 +10,7 @@ import com.motorepuestos.inventario.common.exception.ResourceNotFoundException;
 import com.motorepuestos.inventario.producto.mapper.ProductoMapper;
 import com.motorepuestos.inventario.categoria.repository.CategoriaRepository;
 import com.motorepuestos.inventario.producto.repository.ProductoRepository;
-import com.motorepuestos.inventario.auditoria.service.AuditoriaService;
-import com.motorepuestos.inventario.common.util.JsonUtil;
+import com.motorepuestos.inventario.auditoria.service.AuditoriaHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,8 +25,7 @@ public class ProductoServiceImpl implements ProductoService {
     private final ProductoMapper productoMapper;
     private final ProductoRepository productoRepository;
     private final CategoriaRepository categoriaRepository;
-    private final AuditoriaService auditoriaService;
-    private final JsonUtil jsonUtil;
+    private final AuditoriaHelper auditoriaHelper;
 
     @Override
     @Transactional
@@ -42,13 +40,7 @@ public class ProductoServiceImpl implements ProductoService {
 
         ProductoResponse response = productoMapper.toResponse(producto);
 
-        auditoriaService.registrar(
-                "CREAR",
-                "PRODUCTO",
-                producto.getId(),
-                null,
-                jsonUtil.convertir(response)
-        );
+        auditoriaHelper.registrarCreacion("CREAR", "PRODUCTO", producto.getId(), response);
 
         return response;
     }
@@ -73,8 +65,6 @@ public class ProductoServiceImpl implements ProductoService {
         // Escritura: con lock, para evitar carreras entre ediciones concurrentes
         Producto producto = obtenerProductoConLockOrThrow(id);
 
-        ProductoResponse datosAntResponse = productoMapper.toResponse(producto);
-
         boolean cambioCodigo = !producto.getCodigo().equals(request.getCodigo());
 
         if (cambioCodigo) {
@@ -83,24 +73,23 @@ public class ProductoServiceImpl implements ProductoService {
 
         Categoria categoria = obtenerCategoriaOrThrow(request.getCategoriaId());
 
-        producto.setCodigo(request.getCodigo());
-        producto.setNombre(request.getNombre());
-        producto.setCategoria(categoria);
-        producto.setPrecioCompra(request.getPrecioCompra());
-        producto.setPrecioVenta(request.getPrecioVenta());
-        producto.setEstado(request.getEstado());
-
-        ProductoResponse datosNewResponse = productoMapper.toResponse(producto);
-
-        auditoriaService.registrar(
+        auditoriaHelper.registrarCambio(
                 "ACTUALIZAR",
                 "PRODUCTO",
-                producto.getId(),
-                jsonUtil.convertir(datosAntResponse),
-                jsonUtil.convertir(datosNewResponse)
+                id,
+                producto,
+                productoMapper::toResponse,
+                () -> {
+                    producto.setCodigo(request.getCodigo());
+                    producto.setNombre(request.getNombre());
+                    producto.setCategoria(categoria);
+                    producto.setPrecioCompra(request.getPrecioCompra());
+                    producto.setPrecioVenta(request.getPrecioVenta());
+                    producto.setEstado(request.getEstado());
+                }
         );
 
-        return datosNewResponse;
+        return productoMapper.toResponse(producto);
     }
 
     @Override
@@ -109,18 +98,13 @@ public class ProductoServiceImpl implements ProductoService {
         // Escritura (soft delete): con lock
         Producto producto = obtenerProductoConLockOrThrow(id);
 
-        ProductoResponse datosAntResponse = productoMapper.toResponse(producto);
-
-        producto.setEstado(false);
-
-        ProductoResponse datosNewResponse = productoMapper.toResponse(producto);
-
-        auditoriaService.registrar(
+        auditoriaHelper.registrarCambio(
                 "ELIMINAR",
                 "PRODUCTO",
-                producto.getId(),
-                jsonUtil.convertir(datosAntResponse),
-                jsonUtil.convertir(datosNewResponse)
+                id,
+                producto,
+                productoMapper::toResponse,
+                () -> producto.setEstado(false)
         );
     }
 
