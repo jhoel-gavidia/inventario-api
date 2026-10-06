@@ -7,7 +7,7 @@ import com.motorepuestos.inventario.entity.DetalleMovimiento;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", unmappedTargetPolicy = org.mapstruct.ReportingPolicy.IGNORE)
 public interface DetalleMovimientoMapper {
 
     @Mapping(source = "producto.id", target = "productoId")

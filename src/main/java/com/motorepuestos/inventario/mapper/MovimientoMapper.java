@@ -7,7 +7,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring",
-        uses = DetalleMovimientoMapper.class)
+        uses = DetalleMovimientoMapper.class,
+        unmappedTargetPolicy = org.mapstruct.ReportingPolicy.IGNORE)
 public interface MovimientoMapper {
 
     MovimientoResponse toResponse(Movimiento movimiento);

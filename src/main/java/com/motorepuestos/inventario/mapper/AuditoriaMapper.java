@@ -5,7 +5,7 @@ import com.motorepuestos.inventario.entity.Auditoria;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", unmappedTargetPolicy = org.mapstruct.ReportingPolicy.IGNORE)
 public interface AuditoriaMapper {
 
     @Mapping(source = "usuario.id", target = "usuarioId")

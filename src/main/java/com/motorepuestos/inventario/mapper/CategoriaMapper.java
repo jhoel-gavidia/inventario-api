@@ -5,7 +5,7 @@ import com.motorepuestos.inventario.DTOs.Response.CategoriaResponse;
 import com.motorepuestos.inventario.entity.Categoria;
 import org.mapstruct.Mapper;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", unmappedTargetPolicy = org.mapstruct.ReportingPolicy.IGNORE)
 public interface CategoriaMapper {
 
     Categoria toEntity(CategoriaRequest request);

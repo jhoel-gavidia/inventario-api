@@ -6,7 +6,7 @@ import com.motorepuestos.inventario.entity.Producto;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", unmappedTargetPolicy = org.mapstruct.ReportingPolicy.IGNORE)
 public interface ProductoMapper {
     @Mapping(source = "stockInicial", target = "stockActual")
     @Mapping(target = "categoria", ignore = true)

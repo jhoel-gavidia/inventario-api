@@ -5,7 +5,7 @@ import com.motorepuestos.inventario.DTOs.Response.UsuarioResponse;
 import com.motorepuestos.inventario.entity.Usuario;
 import org.mapstruct.Mapper;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", unmappedTargetPolicy = org.mapstruct.ReportingPolicy.IGNORE)
 public interface UsuarioMapper {
 
     Usuario toEntity(UsuarioRequest request);
