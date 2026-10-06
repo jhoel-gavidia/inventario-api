@@ -137,32 +137,11 @@ public class MovimientoServiceImpl implements MovimientoService {
 
     private void actualizarStock(Producto producto, Tipo tipo, Integer cantidad) {
 
-        int stockActual = producto.getStockActual();
-
-        if (tipo == Tipo.ENTRADA) {
-
-            if (cantidad > Integer.MAX_VALUE - stockActual) {
-                throw new BusinessException(
-                        "El stock del producto excedería el límite permitido: " + producto.getNombre()
-                );
-            }
-
-            producto.setStockActual(stockActual + cantidad);
-
-            return;
+        if (tipo == null) {
+            throw new BusinessException("El tipo de movimiento es obligatorio");
         }
 
-        if (tipo != Tipo.SALIDA) {
-            throw new BusinessException("El tipo de movimiento no es válido: " + tipo);
-        }
-
-        if (stockActual < cantidad) {
-            throw new BusinessException(
-                    "Stock insuficiente para el producto: " + producto.getNombre()
-            );
-        }
-
-        producto.setStockActual(stockActual - cantidad);
+        tipo.aplicar(producto, cantidad);
     }
 
 
