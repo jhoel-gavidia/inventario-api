@@ -4,6 +4,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -238,11 +241,25 @@ public class GlobalExceptionHandler {
             IllegalStateException exception,
             HttpServletRequest request
     ) {
-        log.warn(
+        log.error(
                 "Estado inválido en {}: {}",
                 request.getRequestURI(),
-                exception.getMessage()
+                exception.getMessage(),
+                exception
         );
+        return buildResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Ocurrió un error inesperado. Contacte al administrador.",
+                request
+        );
+    }
+
+    @ExceptionHandler(UnauthenticatedUserException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthenticatedUser(
+            UnauthenticatedUserException exception,
+            HttpServletRequest request
+    ) {
+        log.warn("Sin usuario autenticado en {}", request.getRequestURI());
         return buildResponse(
                 HttpStatus.UNAUTHORIZED,
                 exception.getMessage(),
@@ -260,6 +277,57 @@ public class GlobalExceptionHandler {
         return buildResponse(
                 HttpStatus.FORBIDDEN,
                 "No tiene permisos para acceder a este recurso",
+                request
+        );
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(
+            DataIntegrityViolationException exception,
+            HttpServletRequest request
+    ) {
+        log.error(
+                "Violación de integridad en {}: {}",
+                request.getRequestURI(),
+                exception.getMostSpecificCause().getMessage()
+        );
+        return buildResponse(
+                HttpStatus.CONFLICT,
+                "La operación entra en conflicto con el estado actual del recurso. Inténtelo de nuevo.",
+                request
+        );
+    }
+
+    @ExceptionHandler(PessimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handlePessimisticLocking(
+            PessimisticLockingFailureException exception,
+            HttpServletRequest request
+    ) {
+        log.error(
+                "No se pudo obtener el bloqueo de {}: {}",
+                request.getRequestURI(),
+                exception.getMessage()
+        );
+        return buildResponse(
+                HttpStatus.CONFLICT,
+                "El recurso está siendo modificado por otra operación. Inténtelo de nuevo.",
+                request
+        );
+    }
+
+    @ExceptionHandler(CannotAcquireLockException.class)
+    public ResponseEntity<ErrorResponse> handleCannotAcquireLock(
+            CannotAcquireLockException exception,
+            HttpServletRequest request
+    ) {
+        log.error(
+                "No se pudo adquirir el bloqueo de {}: {}",
+                request.getRequestURI(),
+                exception.getMessage()
+        );
+        return buildResponse(
+                HttpStatus.CONFLICT,
+                "El recurso está siendo modificado por otra operación. Inténtelo de nuevo.",
                 request
         );
     }

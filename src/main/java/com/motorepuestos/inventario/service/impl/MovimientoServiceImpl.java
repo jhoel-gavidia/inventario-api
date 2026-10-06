@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -44,14 +45,14 @@ public class MovimientoServiceImpl implements MovimientoService {
     public MovimientoResponse registrar(MovimientoRequest request) {
         Usuario usuario = securityUtils.obtenerUsuarioAutenticado();
 
-        validarProductosNoRepetidos(request.getDetalles());
+        List<DetalleMovimientoRequest> detallesOrdenados = ordenarDetalles(request.getDetalles());
 
         Movimiento movimiento = new Movimiento();
         movimiento.setTipo(request.getTipo());
         movimiento.setFecha(LocalDateTime.now());
         movimiento.setUsuario(usuario);
 
-        for (DetalleMovimientoRequest detalleRequest : request.getDetalles()) {
+        for (DetalleMovimientoRequest detalleRequest : detallesOrdenados) {
             DetalleMovimiento detalle = construirDetalle(movimiento, request.getTipo(), detalleRequest);
             movimiento.getDetalles().add(detalle);
         }
@@ -79,6 +80,17 @@ public class MovimientoServiceImpl implements MovimientoService {
                 .toList();
     }
 
+    private List<DetalleMovimientoRequest> ordenarDetalles(
+            List<DetalleMovimientoRequest> detalles
+    ) {
+
+        validarProductosNoRepetidos(detalles);
+
+        return detalles.stream()
+                .sorted(Comparator.comparing(DetalleMovimientoRequest::getProductoId))
+                .toList();
+    }
+
     private void validarProductosNoRepetidos(
             List<DetalleMovimientoRequest> detalles
     ) {
@@ -97,7 +109,7 @@ public class MovimientoServiceImpl implements MovimientoService {
             Movimiento movimiento, Tipo tipo, DetalleMovimientoRequest detalleRequest
     ) {
         Producto producto = obtenerProductoOrThrow(detalleRequest.getProductoId());
-        Integer cantidad = detalleRequest.getCantidad();
+        Integer cantidad = validarCantidad(detalleRequest.getCantidad());
 
         actualizarStock(producto, tipo, cantidad);
 
@@ -109,22 +121,43 @@ public class MovimientoServiceImpl implements MovimientoService {
         return detalle;
     }
 
+    private Integer validarCantidad(Integer cantidad) {
+
+        if (cantidad == null || cantidad <= 0) {
+            throw new BusinessException("La cantidad debe ser mayor que cero");
+        }
+
+        return cantidad;
+    }
+
     private void actualizarStock(Producto producto, Tipo tipo, Integer cantidad) {
+
+        int stockActual = producto.getStockActual();
+
         if (tipo == Tipo.ENTRADA) {
-            producto.setStockActual(
-                    producto.getStockActual() + cantidad
-            );
+
+            if (cantidad > Integer.MAX_VALUE - stockActual) {
+                throw new BusinessException(
+                        "El stock del producto excedería el límite permitido: " + producto.getNombre()
+                );
+            }
+
+            producto.setStockActual(stockActual + cantidad);
 
             return;
         }
 
-        if (producto.getStockActual() < cantidad) {
+        if (tipo != Tipo.SALIDA) {
+            throw new BusinessException("El tipo de movimiento no es válido: " + tipo);
+        }
+
+        if (stockActual < cantidad) {
             throw new BusinessException(
                     "Stock insuficiente para el producto: " + producto.getNombre()
             );
         }
 
-        producto.setStockActual(producto.getStockActual() - cantidad);
+        producto.setStockActual(stockActual - cantidad);
     }
 
 

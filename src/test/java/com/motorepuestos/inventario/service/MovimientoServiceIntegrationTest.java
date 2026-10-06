@@ -258,6 +258,147 @@ class MovimientoServiceIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void registrar_cantidadCero_debeLanzarExcepcion() {
+
+        // Arrange
+        DetalleMovimientoRequest detalle = new DetalleMovimientoRequest();
+        detalle.setProductoId(producto.getId());
+        detalle.setCantidad(0);
+
+        MovimientoRequest request = new MovimientoRequest();
+        request.setTipo(Tipo.ENTRADA);
+        request.setDetalles(List.of(detalle));
+
+        // Act & Assert
+        assertThatThrownBy(() -> movimientoService.registrar(request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("mayor que cero");
+
+        assertThat(productoRepository.findById(producto.getId()).orElseThrow().getStockActual())
+                .isEqualTo(10);
+        assertThat(movimientoRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void registrar_cantidadNula_debeLanzarExcepcion() {
+
+        // Arrange
+        DetalleMovimientoRequest detalle = new DetalleMovimientoRequest();
+        detalle.setProductoId(producto.getId());
+        detalle.setCantidad(null);
+
+        MovimientoRequest request = new MovimientoRequest();
+        request.setTipo(Tipo.ENTRADA);
+        request.setDetalles(List.of(detalle));
+
+        // Act & Assert
+        assertThatThrownBy(() -> movimientoService.registrar(request))
+                .isInstanceOf(BusinessException.class);
+
+        assertThat(movimientoRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void registrar_conDetallesEnOrdenInverso_debeAplicarElMismoStock() {
+
+        // Arrange
+        Producto producto2 = new Producto();
+        producto2.setCodigo("FIL-002");
+        producto2.setNombre("Filtro de aire");
+        producto2.setCategoria(producto.getCategoria());
+        producto2.setPrecioCompra(new BigDecimal("8.00"));
+        producto2.setPrecioVenta(new BigDecimal("12.00"));
+        producto2.setStockActual(20);
+        producto2.setEstado(true);
+        producto2 = productoRepository.save(producto2);
+
+        DetalleMovimientoRequest detalleProducto1 = new DetalleMovimientoRequest();
+        detalleProducto1.setProductoId(producto.getId());
+        detalleProducto1.setCantidad(5);
+
+        DetalleMovimientoRequest detalleProducto2 = new DetalleMovimientoRequest();
+        detalleProducto2.setProductoId(producto2.getId());
+        detalleProducto2.setCantidad(3);
+
+        // Act: el mismo conjunto de productos en orden inverso
+        MovimientoRequest request = new MovimientoRequest();
+        request.setTipo(Tipo.ENTRADA);
+        request.setDetalles(List.of(detalleProducto2, detalleProducto1));
+
+        movimientoService.registrar(request);
+
+        // Assert
+        assertThat(productoRepository.findById(producto.getId()).orElseThrow().getStockActual())
+                .isEqualTo(15);
+        assertThat(productoRepository.findById(producto2.getId()).orElseThrow().getStockActual())
+                .isEqualTo(23);
+    }
+
+    @Test
+    void registrar_entradaQueDesbordariaElStock_debeLanzarExcepcion() {
+
+        // Arrange
+        producto.setStockActual(Integer.MAX_VALUE - 1);
+        productoRepository.save(producto);
+
+        DetalleMovimientoRequest detalle = new DetalleMovimientoRequest();
+        detalle.setProductoId(producto.getId());
+        detalle.setCantidad(100);
+
+        MovimientoRequest request = new MovimientoRequest();
+        request.setTipo(Tipo.ENTRADA);
+        request.setDetalles(List.of(detalle));
+
+        // Act & Assert
+        assertThatThrownBy(() -> movimientoService.registrar(request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("límite");
+
+        assertThat(movimientoRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void registrar_tipoDesconocido_noDebeDescontarStock() {
+
+        // Arrange
+        DetalleMovimientoRequest detalle = new DetalleMovimientoRequest();
+        detalle.setProductoId(producto.getId());
+        detalle.setCantidad(5);
+
+        MovimientoRequest request = new MovimientoRequest();
+        request.setTipo(null);
+        request.setDetalles(List.of(detalle));
+
+        // Act & Assert
+        assertThatThrownBy(() -> movimientoService.registrar(request))
+                .isInstanceOf(BusinessException.class);
+
+        assertThat(productoRepository.findById(producto.getId()).orElseThrow().getStockActual())
+                .isEqualTo(10);
+        assertThat(movimientoRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void registrarSalida_exactamenteElStock_debeDejarEnCero() {
+
+        // Arrange
+        DetalleMovimientoRequest detalle = new DetalleMovimientoRequest();
+        detalle.setProductoId(producto.getId());
+        detalle.setCantidad(10);
+
+        MovimientoRequest request = new MovimientoRequest();
+        request.setTipo(Tipo.SALIDA);
+        request.setDetalles(List.of(detalle));
+
+        // Act
+        movimientoService.registrar(request);
+
+        // Assert
+        assertThat(productoRepository.findById(producto.getId()).orElseThrow().getStockActual())
+                .isZero();
+    }
+
+    @Test
     void obtenerTodos_debeRetornarTodosLosMovimientos() {
         // Arrange
         DetalleMovimientoRequest detalle1 = new DetalleMovimientoRequest();
