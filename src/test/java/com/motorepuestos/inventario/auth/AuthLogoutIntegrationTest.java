@@ -1,10 +1,10 @@
 package com.motorepuestos.inventario.auth;
 
-import com.motorepuestos.inventario.entity.Auditoria;
-import com.motorepuestos.inventario.entity.Rol;
-import com.motorepuestos.inventario.entity.Usuario;
-import com.motorepuestos.inventario.repository.AuditoriaRepository;
-import com.motorepuestos.inventario.repository.UsuarioRepository;
+import com.motorepuestos.inventario.auditoria.entity.Auditoria;
+import com.motorepuestos.inventario.usuario.entity.Rol;
+import com.motorepuestos.inventario.usuario.entity.Usuario;
+import com.motorepuestos.inventario.auditoria.repository.AuditoriaRepository;
+import com.motorepuestos.inventario.usuario.repository.UsuarioRepository;
 import com.motorepuestos.inventario.support.AbstractIntegrationTest;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
@@ -15,8 +15,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
-
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;

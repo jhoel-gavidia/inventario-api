@@ -1,11 +1,11 @@
 package com.motorepuestos.inventario.auth.controller;
 
-import com.motorepuestos.inventario.DTOs.Response.UsuarioResponse;
+import com.motorepuestos.inventario.usuario.dto.UsuarioResponse;
 import com.motorepuestos.inventario.auth.dto.CambiarPasswordRequest;
 import com.motorepuestos.inventario.auth.dto.LoginRequest;
 import com.motorepuestos.inventario.auth.dto.LoginResponse;
 import com.motorepuestos.inventario.auth.service.AuthService;
-import com.motorepuestos.inventario.service.UsuarioService;
+import com.motorepuestos.inventario.usuario.service.UsuarioService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

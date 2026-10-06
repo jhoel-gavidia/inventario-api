@@ -1,0 +1,14 @@
+package com.motorepuestos.inventario.usuario.mapper;
+
+import com.motorepuestos.inventario.usuario.dto.UsuarioRequest;
+import com.motorepuestos.inventario.usuario.dto.UsuarioResponse;
+import com.motorepuestos.inventario.usuario.entity.Usuario;
+import org.mapstruct.Mapper;
+
+@Mapper(componentModel = "spring", unmappedTargetPolicy = org.mapstruct.ReportingPolicy.IGNORE)
+public interface UsuarioMapper {
+
+    Usuario toEntity(UsuarioRequest request);
+
+    UsuarioResponse toResponse(Usuario usuario);
+}
