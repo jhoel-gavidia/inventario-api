@@ -8,6 +8,7 @@ import com.motorepuestos.inventario.common.exception.ResourceConflictException;
 import com.motorepuestos.inventario.common.exception.ResourceNotFoundException;
 import com.motorepuestos.inventario.categoria.mapper.CategoriaMapper;
 import com.motorepuestos.inventario.categoria.repository.CategoriaRepository;
+import com.motorepuestos.inventario.categoria.service.CategoriaConsultaService;
 import com.motorepuestos.inventario.producto.service.ProductoConsultaService;
 import com.motorepuestos.inventario.auditoria.service.AuditoriaHelper;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ import java.util.List;
 public class CategoriaServiceImpl implements CategoriaService {
 
     private final CategoriaRepository categoriaRepository;
+    private final CategoriaConsultaService categoriaConsultaService;
     private final CategoriaMapper categoriaMapper;
     private final ProductoConsultaService productoConsultaService;
     private final AuditoriaHelper auditoriaHelper;
@@ -46,7 +48,7 @@ public class CategoriaServiceImpl implements CategoriaService {
 
     @Override
     public CategoriaResponse obtenerPorId(Long id) {
-        return categoriaMapper.toResponse(obtenerCategoriaOrThrow(id));
+        return categoriaMapper.toResponse(categoriaConsultaService.obtenerActiva(id));
     }
 
     @Override
@@ -99,11 +101,6 @@ public class CategoriaServiceImpl implements CategoriaService {
                 categoriaMapper::toResponse,
                 () -> categoria.setEstado(false)
         );
-    }
-
-    private Categoria obtenerCategoriaOrThrow(Long id) {
-        return categoriaRepository.findByIdAndEstadoTrue(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada con id: " + id));
     }
 
     private Categoria obtenerCategoriaConLockOrThrow(Long id) {
