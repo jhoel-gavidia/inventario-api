@@ -62,7 +62,7 @@ public class ProductoServiceImpl implements ProductoService {
     @Override
     @Transactional
     public ProductoResponse actualizar(Long id, ProductoUpdateRequest request) {
-        // Escritura: con lock, para evitar carreras entre ediciones concurrentes
+
         Producto producto = obtenerProductoConLockOrThrow(id);
 
         boolean cambioCodigo = !producto.getCodigo().equals(request.getCodigo());
