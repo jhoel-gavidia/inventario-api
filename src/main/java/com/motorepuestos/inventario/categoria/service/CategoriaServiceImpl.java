@@ -8,9 +8,9 @@ import com.motorepuestos.inventario.common.exception.ResourceConflictException;
 import com.motorepuestos.inventario.common.exception.ResourceNotFoundException;
 import com.motorepuestos.inventario.categoria.mapper.CategoriaMapper;
 import com.motorepuestos.inventario.categoria.repository.CategoriaRepository;
-import com.motorepuestos.inventario.producto.repository.ProductoRepository;
-import com.motorepuestos.inventario.auditoria.service.AuditoriaService;
-import com.motorepuestos.inventario.common.util.JsonUtil;
+import com.motorepuestos.inventario.categoria.service.CategoriaConsultaService;
+import com.motorepuestos.inventario.producto.service.ProductoConsultaService;
+import com.motorepuestos.inventario.auditoria.service.AuditoriaHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,10 +23,10 @@ import java.util.List;
 public class CategoriaServiceImpl implements CategoriaService {
 
     private final CategoriaRepository categoriaRepository;
+    private final CategoriaConsultaService categoriaConsultaService;
     private final CategoriaMapper categoriaMapper;
-    private final ProductoRepository productoRepository;
-    private final AuditoriaService auditoriaService;
-    private final JsonUtil jsonUtil;
+    private final ProductoConsultaService productoConsultaService;
+    private final AuditoriaHelper auditoriaHelper;
 
 
     @Override
@@ -41,20 +41,14 @@ public class CategoriaServiceImpl implements CategoriaService {
 
         CategoriaResponse response = categoriaMapper.toResponse(guardarCategoria);
 
-        auditoriaService.registrar(
-                "CREAR",
-                "CATEGORIA",
-                guardarCategoria.getId(),
-                null,
-                jsonUtil.convertir(response)
-        );
+        auditoriaHelper.registrarCreacion("CREAR", "CATEGORIA", guardarCategoria.getId(), response);
 
         return response;
     }
 
     @Override
     public CategoriaResponse obtenerPorId(Long id) {
-        return categoriaMapper.toResponse(obtenerCategoriaOrThrow(id));
+        return categoriaMapper.toResponse(categoriaConsultaService.obtenerActiva(id));
     }
 
     @Override
@@ -70,27 +64,22 @@ public class CategoriaServiceImpl implements CategoriaService {
     public CategoriaResponse actualizar(Long id, CategoriaRequest request) {
         Categoria categoria = obtenerCategoriaConLockOrThrow(id);
 
-        CategoriaResponse datosAntResponse = categoriaMapper.toResponse(categoria);
-
         boolean cambioNombre = !categoria.getNombre().equals(request.getNombre());
 
         if (cambioNombre) {
             validarNombreDisponible(request.getNombre());
         }
 
-        categoria.setNombre(request.getNombre());
-
-        CategoriaResponse datosNewResponse = categoriaMapper.toResponse(categoria);
-
-        auditoriaService.registrar(
+        auditoriaHelper.registrarCambio(
                 "ACTUALIZAR",
                 "CATEGORIA",
-                categoria.getId(),
-                jsonUtil.convertir(datosAntResponse),
-                jsonUtil.convertir(datosNewResponse)
+                id,
+                categoria,
+                categoriaMapper::toResponse,
+                () -> categoria.setNombre(request.getNombre())
         );
 
-        return datosNewResponse;
+        return categoriaMapper.toResponse(categoria);
     }
 
     @Override
@@ -98,30 +87,20 @@ public class CategoriaServiceImpl implements CategoriaService {
     public void eliminar(Long id) {
         Categoria categoria = obtenerCategoriaConLockOrThrow(id);
 
-        if (productoRepository.existsByCategoriaIdAndEstadoTrue(id)) {
+        if (productoConsultaService.existenActivosPorCategoria(id)) {
             throw new BusinessException(
                     "No se puede eliminar la categoría porque tiene productos activos asociados"
             );
         }
 
-        CategoriaResponse datosAntResponse = categoriaMapper.toResponse(categoria);
-
-        categoria.setEstado(false);
-
-        CategoriaResponse datosNewResponse = categoriaMapper.toResponse(categoria);
-
-        auditoriaService.registrar(
+        auditoriaHelper.registrarCambio(
                 "ELIMINAR",
                 "CATEGORIA",
-                categoria.getId(),
-                jsonUtil.convertir(datosAntResponse),
-                jsonUtil.convertir(datosNewResponse)
+                id,
+                categoria,
+                categoriaMapper::toResponse,
+                () -> categoria.setEstado(false)
         );
-    }
-
-    private Categoria obtenerCategoriaOrThrow(Long id) {
-        return categoriaRepository.findByIdAndEstadoTrue(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada con id: " + id));
     }
 
     private Categoria obtenerCategoriaConLockOrThrow(Long id) {

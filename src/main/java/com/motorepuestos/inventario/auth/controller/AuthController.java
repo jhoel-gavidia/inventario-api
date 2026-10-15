@@ -1,7 +1,7 @@
 package com.motorepuestos.inventario.auth.controller;
 
+import com.motorepuestos.inventario.usuario.dto.CambiarPasswordRequest;
 import com.motorepuestos.inventario.usuario.dto.UsuarioResponse;
-import com.motorepuestos.inventario.auth.dto.CambiarPasswordRequest;
 import com.motorepuestos.inventario.auth.dto.LoginRequest;
 import com.motorepuestos.inventario.auth.dto.LoginResponse;
 import com.motorepuestos.inventario.auth.service.AuthService;
@@ -57,7 +57,7 @@ public class AuthController {
             @Valid @RequestBody CambiarPasswordRequest request
     ) {
 
-        authService.cambiarPassword(request);
+        usuarioService.cambiarPassword(request);
 
         return ResponseEntity.noContent().build();
     }

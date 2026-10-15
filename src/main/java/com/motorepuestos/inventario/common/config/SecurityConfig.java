@@ -1,5 +1,6 @@
 package com.motorepuestos.inventario.common.config;
 
+import com.motorepuestos.inventario.usuario.entity.Rol;
 import com.motorepuestos.inventario.common.security.JwtAuthenticationFilter;
 import com.motorepuestos.inventario.common.security.LoginRateLimitFilter;
 import com.motorepuestos.inventario.common.security.RestAccessDeniedHandler;
@@ -127,25 +128,25 @@ public class SecurityConfig {
                                 .requestMatchers("/error").permitAll()
 
                                 .requestMatchers(HttpMethod.GET, "/api/v1/categorias/**")
-                                .hasAnyRole("USER", "ADMIN")
+                                .hasAnyRole(Rol.USER.name(), Rol.ADMIN.name())
 
                                 .requestMatchers("/api/v1/categorias/**")
-                                .hasRole("ADMIN")
+                                .hasRole(Rol.ADMIN.name())
 
                                 .requestMatchers(HttpMethod.GET, "/api/v1/productos/**")
-                                .hasAnyRole("USER", "ADMIN")
+                                .hasAnyRole(Rol.USER.name(), Rol.ADMIN.name())
 
                                 .requestMatchers("/api/v1/productos/**")
-                                .hasRole("ADMIN")
+                                .hasRole(Rol.ADMIN.name())
 
                                 .requestMatchers("/api/v1/movimientos/**")
-                                .hasAnyRole("USER", "ADMIN")
+                                .hasAnyRole(Rol.USER.name(), Rol.ADMIN.name())
 
                                 .requestMatchers("/api/v1/usuarios/**")
-                                .hasRole("ADMIN")
+                                .hasRole(Rol.ADMIN.name())
 
                                 .requestMatchers("/api/v1/auditorias/**")
-                                .hasRole("ADMIN")
+                                .hasRole(Rol.ADMIN.name())
 
                                 .anyRequest().authenticated()
                 )

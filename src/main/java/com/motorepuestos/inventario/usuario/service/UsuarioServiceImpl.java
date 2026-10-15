@@ -1,5 +1,6 @@
 package com.motorepuestos.inventario.usuario.service;
 
+import com.motorepuestos.inventario.usuario.dto.CambiarPasswordRequest;
 import com.motorepuestos.inventario.usuario.dto.UsuarioRequest;
 import com.motorepuestos.inventario.usuario.dto.UsuarioUpdateRequest;
 import com.motorepuestos.inventario.usuario.dto.UsuarioResponse;
@@ -11,14 +12,15 @@ import com.motorepuestos.inventario.common.exception.ResourceNotFoundException;
 import com.motorepuestos.inventario.usuario.mapper.UsuarioMapper;
 import com.motorepuestos.inventario.usuario.repository.UsuarioRepository;
 import com.motorepuestos.inventario.common.security.SecurityUtils;
-import com.motorepuestos.inventario.auditoria.service.AuditoriaService;
-import com.motorepuestos.inventario.common.util.JsonUtil;
+import com.motorepuestos.inventario.auditoria.service.AuditoriaHelper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -28,8 +30,7 @@ public class UsuarioServiceImpl implements UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final UsuarioMapper usuarioMapper;
     private final PasswordEncoder passwordEncoder;
-    private final AuditoriaService auditoriaService;
-    private final JsonUtil jsonUtil;
+    private final AuditoriaHelper auditoriaHelper;
     private final SecurityUtils securityUtils;
 
     @Override
@@ -48,13 +49,7 @@ public class UsuarioServiceImpl implements UsuarioService {
 
         UsuarioResponse response = usuarioMapper.toResponse(usuario);
 
-        auditoriaService.registrar(
-                "CREAR",
-                "USUARIO",
-                usuario.getId(),
-                null,
-                jsonUtil.convertir(response)
-        );
+        auditoriaHelper.registrarCreacion("CREAR", "USUARIO", usuario.getId(), response);
 
         return response;
     }
@@ -83,29 +78,26 @@ public class UsuarioServiceImpl implements UsuarioService {
 
         validarCambioDeAcceso(usuario, request.getRol(), request.getEstado());
 
-        UsuarioResponse datosAntResponse = usuarioMapper.toResponse(usuario);
-
         if (!usuario.getUsername().equals(request.getUsername())
                 && usuarioRepository.existsByUsername(request.getUsername())) {
             throw new ResourceConflictException("El username ya existe");
         }
 
-        usuario.setUsername(request.getUsername());
-        usuario.setRol(request.getRol());
-        usuario.setEstado(request.getEstado());
-
-        UsuarioResponse datosNewResponse = usuarioMapper.toResponse(usuario);
-
-        auditoriaService.registrar(
+        auditoriaHelper.registrarCambio(
                 actor,
                 "ACTUALIZAR",
                 "USUARIO",
-                usuario.getId(),
-                jsonUtil.convertir(datosAntResponse),
-                jsonUtil.convertir(datosNewResponse)
+                id,
+                usuario,
+                usuarioMapper::toResponse,
+                () -> {
+                    usuario.setUsername(request.getUsername());
+                    usuario.setRol(request.getRol());
+                    usuario.setEstado(request.getEstado());
+                }
         );
 
-        return datosNewResponse;
+        return usuarioMapper.toResponse(usuario);
     }
 
     @Override
@@ -125,19 +117,41 @@ public class UsuarioServiceImpl implements UsuarioService {
 
         validarCambioDeAcceso(usuario, usuario.getRol(), false);
 
-        UsuarioResponse datosAntResponse = usuarioMapper.toResponse(usuario);
-
-        usuario.setEstado(false);
-
-        UsuarioResponse datosNewResponse = usuarioMapper.toResponse(usuario);
-
-        auditoriaService.registrar(
+        auditoriaHelper.registrarCambio(
                 actor,
                 "ELIMINAR",
                 "USUARIO",
+                id,
+                usuario,
+                usuarioMapper::toResponse,
+                () -> usuario.setEstado(false)
+        );
+    }
+
+    @Override
+    @Transactional
+    public void cambiarPassword(CambiarPasswordRequest request) {
+
+        Usuario usuario = securityUtils.obtenerUsuarioAutenticado();
+
+        if (!passwordEncoder.matches(request.getPasswordActual(), usuario.getPassword())) {
+            throw new BadCredentialsException("La contraseña actual no es correcta");
+        }
+
+        if (passwordEncoder.matches(request.getPasswordNueva(), usuario.getPassword())) {
+            throw new BusinessException("La nueva contraseña debe ser distinta de la actual");
+        }
+
+        usuario.setPassword(passwordEncoder.encode(request.getPasswordNueva()));
+        usuarioRepository.save(usuario);
+
+        auditoriaHelper.registrar(
+                usuario,
+                "CAMBIAR_PASSWORD",
+                "AUTH",
                 usuario.getId(),
-                jsonUtil.convertir(datosAntResponse),
-                jsonUtil.convertir(datosNewResponse)
+                null,
+                Map.of("cambio", true)
         );
     }
 
@@ -163,15 +177,17 @@ public class UsuarioServiceImpl implements UsuarioService {
             throw new BusinessException("No se puede desactivar un usuario ya inactivo");
         }
 
-        boolean eraAdminActivo = usuario.getRol() == Rol.ADMIN && !yaEstaInactivo;
+        Rol rolActual = usuario.getRol();
 
-        boolean dejaDeSerAdminActivo = eraAdminActivo
-                && (nuevoRol != Rol.ADMIN || !nuevoEstado);
+        boolean dejaDeSerRolCriticoActivo = rolActual.exigePresencia()
+                && !yaEstaInactivo
+                && (nuevoRol != rolActual || !nuevoEstado);
 
-        if (dejaDeSerAdminActivo
-                && usuarioRepository.countByRolAndEstadoTrue(Rol.ADMIN) <= 1) {
+        if (dejaDeSerRolCriticoActivo
+                && usuarioRepository.countByRolAndEstadoTrue(rolActual) <= 1) {
             throw new BusinessException(
-                    "No se puede desactivar ni degradar al único administrador activo"
+                    "No se puede desactivar ni degradar al único "
+                            + rolActual.descripcion() + " activo"
             );
         }
     }

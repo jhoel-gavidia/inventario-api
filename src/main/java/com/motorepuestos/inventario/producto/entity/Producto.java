@@ -1,6 +1,7 @@
 package com.motorepuestos.inventario.producto.entity;
 
 import com.motorepuestos.inventario.categoria.entity.Categoria;
+import com.motorepuestos.inventario.common.exception.BusinessException;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -44,4 +45,26 @@ public class Producto {
 
     @Column(nullable = false)
     private Boolean estado;
+
+    public void aumentarStock(int cantidad) {
+
+        if (cantidad > Integer.MAX_VALUE - stockActual) {
+            throw new BusinessException(
+                    "El stock del producto excedería el límite permitido: " + nombre
+            );
+        }
+
+        stockActual += cantidad;
+    }
+
+    public void reducirStock(int cantidad) {
+
+        if (stockActual < cantidad) {
+            throw new BusinessException(
+                    "Stock insuficiente para el producto: " + nombre
+            );
+        }
+
+        stockActual -= cantidad;
+    }
 }
