@@ -1,7 +1,9 @@
 package com.motorepuestos.inventario.movimiento.controller;
 
+import com.motorepuestos.inventario.movimiento.dto.MovimientoDetalleView;
 import com.motorepuestos.inventario.movimiento.dto.MovimientoRequest;
 import com.motorepuestos.inventario.movimiento.dto.MovimientoResponse;
+import com.motorepuestos.inventario.movimiento.dto.MovimientoResumenResponse;
 import com.motorepuestos.inventario.common.dto.PaginaResponse;
 import com.motorepuestos.inventario.movimiento.service.MovimientoService;
 import jakarta.validation.Valid;
@@ -12,6 +14,8 @@ import jakarta.validation.constraints.PositiveOrZero;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -60,10 +64,37 @@ public class MovimientoController {
             @RequestParam(defaultValue = "0") @PositiveOrZero int pagina,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int tamano
     ) {
+        Pageable pageable = PageRequest.of(
+                pagina,
+                tamano,
+                Sort.by(Sort.Direction.DESC, "fecha", "id")
+        );
+
         return ResponseEntity.ok(
-                movimientoService.obtenerTodos(
+                movimientoService.obtenerTodos(pageable)
+        );
+    }
+
+    @GetMapping("/detalles")
+    public ResponseEntity<PaginaResponse<MovimientoDetalleView>> listarDetalles(
+            @RequestParam(required = false) String tipo,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") @PositiveOrZero int pagina,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int tamano
+    ) {
+        return ResponseEntity.ok(
+                movimientoService.buscarDetalles(
+                        tipo,
+                        search,
                         PageRequest.of(pagina, tamano)
                 )
+        );
+    }
+
+    @GetMapping("/resumen")
+    public ResponseEntity<MovimientoResumenResponse> resumenHoy() {
+        return ResponseEntity.ok(
+                movimientoService.resumenHoy()
         );
     }
 }

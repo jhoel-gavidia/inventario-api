@@ -1,8 +1,10 @@
 package com.motorepuestos.inventario.movimiento.service;
 
 import com.motorepuestos.inventario.movimiento.dto.DetalleMovimientoRequest;
+import com.motorepuestos.inventario.movimiento.dto.MovimientoDetalleView;
 import com.motorepuestos.inventario.movimiento.dto.MovimientoRequest;
 import com.motorepuestos.inventario.movimiento.dto.MovimientoResponse;
+import com.motorepuestos.inventario.movimiento.dto.MovimientoResumenResponse;
 import com.motorepuestos.inventario.common.dto.PaginaResponse;
 import com.motorepuestos.inventario.common.exception.BusinessException;
 import com.motorepuestos.inventario.common.exception.ResourceNotFoundException;
@@ -17,10 +19,12 @@ import com.motorepuestos.inventario.common.security.SecurityUtils;
 import com.motorepuestos.inventario.auditoria.service.AuditoriaHelper;
 import com.motorepuestos.inventario.usuario.entity.Usuario;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -80,6 +84,70 @@ public class MovimientoServiceImpl implements MovimientoService {
                 movimientoRepository.findAllBy(pageable),
                 movimientoMapper::toResponse
         );
+    }
+
+    @Override
+    public PaginaResponse<MovimientoDetalleView> buscarDetalles(
+            String tipo,
+            String search,
+            Pageable pageable
+    ) {
+        String searchNormalizado = normalizarSearch(search);
+        Tipo tipoEnum = parsearTipo(tipo);
+
+        Page<MovimientoDetalleView> page = tipoEnum == null
+                ? movimientoRepository.buscarDetalles(searchNormalizado, pageable)
+                : movimientoRepository.buscarDetallesPorTipo(
+                        tipoEnum,
+                        searchNormalizado,
+                        pageable
+                );
+
+        return PaginaResponse.from(page, view -> view);
+    }
+
+    @Override
+    public MovimientoResumenResponse resumenHoy() {
+        LocalDateTime inicio = LocalDate.now().atStartOfDay();
+        LocalDateTime fin = inicio.plusDays(1);
+
+        long entradas = movimientoRepository.sumarCantidadPorTipoEntre(
+                Tipo.ENTRADA,
+                inicio,
+                fin
+        );
+
+        long salidas = movimientoRepository.sumarCantidadPorTipoEntre(
+                Tipo.SALIDA,
+                inicio,
+                fin
+        );
+
+        return new MovimientoResumenResponse(entradas, salidas);
+    }
+
+    private String normalizarSearch(String search) {
+
+        if (search == null || search.isBlank()) {
+            return null;
+        }
+
+        return "%" + search.trim().toLowerCase() + "%";
+    }
+
+    private Tipo parsearTipo(String tipo) {
+
+        if (tipo == null || tipo.isBlank()) {
+            return null;
+        }
+
+        try {
+            return Tipo.valueOf(tipo.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new BusinessException(
+                    "Tipo de movimiento inválido: " + tipo
+            );
+        }
     }
 
     private List<DetalleMovimientoRequest> ordenarDetalles(
