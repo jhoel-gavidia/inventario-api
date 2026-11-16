@@ -1,16 +1,15 @@
 package com.motorepuestos.inventario.categoria.service;
 
+import com.motorepuestos.inventario.categoria.application.command.ActualizarCategoriaCommand;
+import com.motorepuestos.inventario.categoria.application.command.CrearCategoriaCommand;
+import com.motorepuestos.inventario.categoria.application.command.EliminarCategoriaCommand;
+import com.motorepuestos.inventario.categoria.application.usecase.ActualizarCategoriaUseCase;
+import com.motorepuestos.inventario.categoria.application.usecase.CrearCategoriaUseCase;
+import com.motorepuestos.inventario.categoria.application.usecase.EliminarCategoriaUseCase;
 import com.motorepuestos.inventario.categoria.dto.CategoriaRequest;
 import com.motorepuestos.inventario.categoria.dto.CategoriaResponse;
-import com.motorepuestos.inventario.categoria.entity.Categoria;
-import com.motorepuestos.inventario.common.exception.BusinessException;
-import com.motorepuestos.inventario.common.exception.ResourceConflictException;
-import com.motorepuestos.inventario.common.exception.ResourceNotFoundException;
 import com.motorepuestos.inventario.categoria.mapper.CategoriaMapper;
 import com.motorepuestos.inventario.categoria.repository.CategoriaRepository;
-import com.motorepuestos.inventario.categoria.service.CategoriaConsultaService;
-import com.motorepuestos.inventario.producto.service.ProductoConsultaService;
-import com.motorepuestos.inventario.auditoria.service.AuditoriaHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,25 +24,13 @@ public class CategoriaServiceImpl implements CategoriaService {
     private final CategoriaRepository categoriaRepository;
     private final CategoriaConsultaService categoriaConsultaService;
     private final CategoriaMapper categoriaMapper;
-    private final ProductoConsultaService productoConsultaService;
-    private final AuditoriaHelper auditoriaHelper;
-
+    private final CrearCategoriaUseCase crearCategoriaUseCase;
+    private final ActualizarCategoriaUseCase actualizarCategoriaUseCase;
+    private final EliminarCategoriaUseCase eliminarCategoriaUseCase;
 
     @Override
-    @Transactional
     public CategoriaResponse crear(CategoriaRequest request) {
-        validarNombreDisponible(request.getNombre());
-
-        Categoria categoria = categoriaMapper.toEntity(request);
-        categoria.setEstado(true);
-
-        Categoria guardarCategoria = categoriaRepository.save(categoria);
-
-        CategoriaResponse response = categoriaMapper.toResponse(guardarCategoria);
-
-        auditoriaHelper.registrarCreacion("CREAR", "CATEGORIA", guardarCategoria.getId(), response);
-
-        return response;
+        return crearCategoriaUseCase.ejecutar(new CrearCategoriaCommand(request));
     }
 
     @Override
@@ -60,58 +47,12 @@ public class CategoriaServiceImpl implements CategoriaService {
     }
 
     @Override
-    @Transactional
     public CategoriaResponse actualizar(Long id, CategoriaRequest request) {
-        Categoria categoria = obtenerCategoriaConLockOrThrow(id);
-
-        boolean cambioNombre = !categoria.getNombre().equals(request.getNombre());
-
-        if (cambioNombre) {
-            validarNombreDisponible(request.getNombre());
-        }
-
-        auditoriaHelper.registrarCambio(
-                "ACTUALIZAR",
-                "CATEGORIA",
-                id,
-                categoria,
-                categoriaMapper::toResponse,
-                () -> categoria.setNombre(request.getNombre())
-        );
-
-        return categoriaMapper.toResponse(categoria);
+        return actualizarCategoriaUseCase.ejecutar(new ActualizarCategoriaCommand(id, request));
     }
 
     @Override
-    @Transactional
     public void eliminar(Long id) {
-        Categoria categoria = obtenerCategoriaConLockOrThrow(id);
-
-        if (productoConsultaService.existenActivosPorCategoria(id)) {
-            throw new BusinessException(
-                    "No se puede eliminar la categoría porque tiene productos activos asociados"
-            );
-        }
-
-        auditoriaHelper.registrarCambio(
-                "ELIMINAR",
-                "CATEGORIA",
-                id,
-                categoria,
-                categoriaMapper::toResponse,
-                () -> categoria.setEstado(false)
-        );
-    }
-
-    private Categoria obtenerCategoriaConLockOrThrow(Long id) {
-        return categoriaRepository.findByIdForUpdate(id)
-                .filter(categoria -> Boolean.TRUE.equals(categoria.getEstado()))
-                .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada con id: " + id));
-    }
-
-    private void validarNombreDisponible(String nombre) {
-        if (categoriaRepository.existsByNombreAndEstadoTrue(nombre)) {
-            throw new ResourceConflictException("El nombre de la categoría ya existe");
-        }
+        eliminarCategoriaUseCase.ejecutar(new EliminarCategoriaCommand(id));
     }
 }
