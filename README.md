@@ -195,7 +195,7 @@ Base URL: `/api/v1`
 
 | Método | Ruta | Rol | Descripción |
 |---|---|---|---|
-| `GET` | `/productos` | USER, ADMIN | Lista todos los productos |
+| `GET` | `/productos` | USER, ADMIN | Lista productos (filtros opcionales: `search`, `estado`, `categoriaId`, `stockMaximo`; por defecto solo activos) |
 | `GET` | `/productos/{id}` | USER, ADMIN | Obtiene un producto por id |
 | `POST` | `/productos` | ADMIN | Crea un producto |
 | `PUT` | `/productos/{id}` | ADMIN | Actualiza un producto |
@@ -205,7 +205,7 @@ Base URL: `/api/v1`
 
 | Método | Ruta | Rol | Descripción |
 |---|---|---|---|
-| `GET` | `/categorias` | USER, ADMIN | Lista categorías activas |
+| `GET` | `/categorias` | USER, ADMIN | Lista categorías (filtros opcionales: `search`, `estado`; por defecto solo activas) |
 | `GET` | `/categorias/{id}` | USER, ADMIN | Obtiene una categoría |
 | `POST` | `/categorias` | ADMIN | Crea una categoría |
 | `PUT` | `/categorias/{id}` | ADMIN | Actualiza una categoría |
@@ -223,7 +223,7 @@ Base URL: `/api/v1`
 
 | Método | Ruta | Rol | Descripción |
 |---|---|---|---|
-| `GET` | `/usuarios` | ADMIN | Lista usuarios |
+| `GET` | `/usuarios` | ADMIN | Lista usuarios (filtros opcionales: `search`, `rol`, `estado`; por defecto solo activos) |
 | `GET` | `/usuarios/{id}` | ADMIN | Obtiene un usuario |
 | `POST` | `/usuarios` | ADMIN | Crea un usuario |
 | `PUT` | `/usuarios/{id}` | ADMIN | Actualiza un usuario |
@@ -257,7 +257,7 @@ Los endpoints de **movimientos** y **auditorías** devuelven un objeto `PaginaRe
 
 Parámetros de query: `pagina` (base 0, default `0`) y `tamano` (entre 1 y 100, default `20`).
 
-> Productos, categorías y usuarios devuelven arreglos planos (`List<T>`), sin paginación.
+> Productos, categorías y usuarios devuelven arreglos planos (`List<T>`), sin paginación (admiten filtros opcionales por query params).
 
 ---
 
