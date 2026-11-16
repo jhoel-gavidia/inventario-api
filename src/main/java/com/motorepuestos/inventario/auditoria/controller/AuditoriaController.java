@@ -2,8 +2,8 @@ package com.motorepuestos.inventario.auditoria.controller;
 
 import com.motorepuestos.inventario.auditoria.dto.AuditoriaResponse;
 import com.motorepuestos.inventario.auditoria.dto.AuditoriaResumenResponse;
+import com.motorepuestos.inventario.auditoria.service.query.AuditoriaQueryService;
 import com.motorepuestos.inventario.common.dto.PaginaResponse;
-import com.motorepuestos.inventario.auditoria.service.AuditoriaService;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
@@ -27,7 +27,7 @@ import java.time.LocalDate;
 @RequestMapping("/api/v1/auditorias")
 public class AuditoriaController {
 
-    private final AuditoriaService auditoriaService;
+    private final AuditoriaQueryService auditoriaQueryService;
 
     @GetMapping
     public ResponseEntity<PaginaResponse<AuditoriaResponse>> listar(
@@ -57,7 +57,7 @@ public class AuditoriaController {
         );
 
         return ResponseEntity.ok(
-                auditoriaService.buscar(
+                auditoriaQueryService.buscar(
                         search,
                         entidad,
                         entidadId,
@@ -72,7 +72,7 @@ public class AuditoriaController {
     public ResponseEntity<AuditoriaResumenResponse> resumen() {
         log.info("Consultando resumen de auditorías");
 
-        return ResponseEntity.ok(auditoriaService.resumen());
+        return ResponseEntity.ok(auditoriaQueryService.resumen());
     }
 
     @GetMapping("/{id}")
@@ -82,7 +82,7 @@ public class AuditoriaController {
         log.info("Consultando auditoría id={}", id);
 
         return ResponseEntity.ok(
-                auditoriaService.obtenerPorId(id)
+                auditoriaQueryService.obtenerPorId(id)
         );
     }
 }

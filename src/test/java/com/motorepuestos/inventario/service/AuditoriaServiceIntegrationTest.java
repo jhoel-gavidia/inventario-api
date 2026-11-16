@@ -4,7 +4,8 @@ import com.motorepuestos.inventario.categoria.dto.CategoriaRequest;
 import com.motorepuestos.inventario.auditoria.dto.AuditoriaResponse;
 import com.motorepuestos.inventario.categoria.dto.CategoriaResponse;
 import com.motorepuestos.inventario.auditoria.entity.Auditoria;
-import com.motorepuestos.inventario.auditoria.service.AuditoriaService;
+import com.motorepuestos.inventario.auditoria.service.AuditoriaCommandService;
+import com.motorepuestos.inventario.auditoria.service.query.AuditoriaQueryService;
 import com.motorepuestos.inventario.categoria.service.CategoriaService;
 import com.motorepuestos.inventario.usuario.entity.Rol;
 import com.motorepuestos.inventario.usuario.entity.Usuario;
@@ -31,7 +32,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class AuditoriaServiceIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
-    private AuditoriaService auditoriaService;
+    private AuditoriaCommandService auditoriaCommandService;
+
+    @Autowired
+    private AuditoriaQueryService auditoriaQueryService;
 
     @Autowired
     private CategoriaService categoriaService;
@@ -90,7 +94,7 @@ class AuditoriaServiceIntegrationTest extends AbstractIntegrationTest {
         );
 
         // Act
-        var pagina = auditoriaService.listar(org.springframework.data.domain.PageRequest.of(0, 20));
+        var pagina = auditoriaQueryService.listar(org.springframework.data.domain.PageRequest.of(0, 20));
 
         // Assert
         assertThat(pagina.contenido()).hasSize(2);
@@ -110,7 +114,7 @@ class AuditoriaServiceIntegrationTest extends AbstractIntegrationTest {
 
         // Act
         var auditorias =
-                auditoriaService.listarPorEntidad("CATEGORIA", creada.getId(), org.springframework.data.domain.PageRequest.of(0, 10)).contenido();
+                auditoriaQueryService.listarPorEntidad("CATEGORIA", creada.getId(), org.springframework.data.domain.PageRequest.of(0, 10)).contenido();
 
         // Assert
         assertThat(auditorias).hasSize(1);
@@ -131,7 +135,7 @@ class AuditoriaServiceIntegrationTest extends AbstractIntegrationTest {
 
         // Act
         var auditorias =
-                auditoriaService.listarPorEntidad("PRODUCTO", 999999L, org.springframework.data.domain.PageRequest.of(0, 10)).contenido();
+                auditoriaQueryService.listarPorEntidad("PRODUCTO", 999999L, org.springframework.data.domain.PageRequest.of(0, 10)).contenido();
 
         // Assert
         assertThat(auditorias).isEmpty();
@@ -146,12 +150,12 @@ class AuditoriaServiceIntegrationTest extends AbstractIntegrationTest {
         );
 
         AuditoriaResponse registrada =
-                auditoriaService.listarPorEntidad("CATEGORIA", creada.getId(), org.springframework.data.domain.PageRequest.of(0, 10))
+                auditoriaQueryService.listarPorEntidad("CATEGORIA", creada.getId(), org.springframework.data.domain.PageRequest.of(0, 10))
                         .contenido().get(0);
 
         // Act
         AuditoriaResponse auditoria =
-                auditoriaService.obtenerPorId(registrada.id());
+                auditoriaQueryService.obtenerPorId(registrada.id());
 
         // Assert
         assertThat(auditoria.id()).isEqualTo(registrada.id());
@@ -163,7 +167,7 @@ class AuditoriaServiceIntegrationTest extends AbstractIntegrationTest {
     @Test
     void obtenerPorId_auditoriaInexistente_debeLanzarExcepcion() {
 
-        assertThatThrownBy(() -> auditoriaService.obtenerPorId(999999L))
+        assertThatThrownBy(() -> auditoriaQueryService.obtenerPorId(999999L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -174,7 +178,7 @@ class AuditoriaServiceIntegrationTest extends AbstractIntegrationTest {
         SecurityContextHolder.clearContext();
 
         // Act & Assert
-        assertThatThrownBy(() -> auditoriaService.registrar(
+        assertThatThrownBy(() -> auditoriaCommandService.registrar(
                 "CREAR",
                 "CATEGORIA",
                 1L,
@@ -187,7 +191,7 @@ class AuditoriaServiceIntegrationTest extends AbstractIntegrationTest {
     @Test
     void registrar_entidadIdNulo_debeLanzarExcepcion() {
 
-        assertThatThrownBy(() -> auditoriaService.registrar(
+        assertThatThrownBy(() -> auditoriaCommandService.registrar(
                 "CREAR",
                 "CATEGORIA",
                 null,
@@ -201,7 +205,7 @@ class AuditoriaServiceIntegrationTest extends AbstractIntegrationTest {
     void registrar_sinEntidadIdNoDebePersistirAuditoria() {
 
         // Act
-        assertThatThrownBy(() -> auditoriaService.registrar(
+        assertThatThrownBy(() -> auditoriaCommandService.registrar(
                 "CREAR",
                 "CATEGORIA",
                 null,

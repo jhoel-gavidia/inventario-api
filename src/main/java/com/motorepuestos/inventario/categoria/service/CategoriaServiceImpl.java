@@ -8,25 +8,20 @@ import com.motorepuestos.inventario.categoria.application.usecase.CrearCategoria
 import com.motorepuestos.inventario.categoria.application.usecase.EliminarCategoriaUseCase;
 import com.motorepuestos.inventario.categoria.dto.CategoriaRequest;
 import com.motorepuestos.inventario.categoria.dto.CategoriaResponse;
-import com.motorepuestos.inventario.categoria.mapper.CategoriaMapper;
-import com.motorepuestos.inventario.categoria.repository.CategoriaRepository;
+import com.motorepuestos.inventario.categoria.service.query.CategoriaQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 @Service
 public class CategoriaServiceImpl implements CategoriaService {
 
-    private final CategoriaRepository categoriaRepository;
-    private final CategoriaConsultaService categoriaConsultaService;
-    private final CategoriaMapper categoriaMapper;
     private final CrearCategoriaUseCase crearCategoriaUseCase;
     private final ActualizarCategoriaUseCase actualizarCategoriaUseCase;
     private final EliminarCategoriaUseCase eliminarCategoriaUseCase;
+    private final CategoriaQueryService categoriaQueryService;
 
     @Override
     public CategoriaResponse crear(CategoriaRequest request) {
@@ -35,15 +30,12 @@ public class CategoriaServiceImpl implements CategoriaService {
 
     @Override
     public CategoriaResponse obtenerPorId(Long id) {
-        return categoriaMapper.toResponse(categoriaConsultaService.obtenerActiva(id));
+        return categoriaQueryService.obtenerPorId(id);
     }
 
     @Override
     public List<CategoriaResponse> obtenerTodos() {
-        return categoriaRepository.findByEstadoTrueOrderByNombreAsc()
-                .stream()
-                .map(categoriaMapper::toResponse)
-                .toList();
+        return categoriaQueryService.obtenerTodos();
     }
 
     @Override
