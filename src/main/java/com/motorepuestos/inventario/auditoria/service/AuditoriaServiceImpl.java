@@ -8,10 +8,8 @@ import com.motorepuestos.inventario.usuario.entity.Usuario;
 import com.motorepuestos.inventario.common.exception.ResourceNotFoundException;
 import com.motorepuestos.inventario.auditoria.mapper.AuditoriaMapper;
 import com.motorepuestos.inventario.auditoria.repository.AuditoriaRepository;
+import com.motorepuestos.inventario.auditoria.repository.AuditoriaSpecifications;
 import com.motorepuestos.inventario.common.security.SecurityUtils;
-import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.JoinType;
-import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -23,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -145,71 +142,16 @@ public class AuditoriaServiceImpl implements AuditoriaService {
             LocalDate desde,
             Pageable pageable
     ) {
-        Specification<Auditoria> specification = construirFiltro(
-                search,
-                entidad,
-                entidadId,
-                accion,
-                desde
-        );
+        Specification<Auditoria> specification = Specification
+                .where(AuditoriaSpecifications.conEntidad(entidad))
+                .and(AuditoriaSpecifications.conEntidadId(entidadId))
+                .and(AuditoriaSpecifications.conAccion(accion))
+                .and(AuditoriaSpecifications.desde(desde))
+                .and(AuditoriaSpecifications.conTexto(search));
 
         Page<Auditoria> page = auditoriaRepository.findAll(specification, pageable);
 
         return PaginaResponse.from(page, auditoriaMapper::toResponse);
-    }
-
-    private Specification<Auditoria> construirFiltro(
-            String search,
-            String entidad,
-            Long entidadId,
-            String accion,
-            LocalDate desde
-    ) {
-        return (root, query, cb) -> {
-            List<Predicate> predicates = new ArrayList<>();
-
-            if (entidad != null && !entidad.isBlank()) {
-                predicates.add(
-                        cb.equal(root.get("entidad"), entidad.trim().toUpperCase())
-                );
-            }
-
-            if (entidadId != null) {
-                predicates.add(cb.equal(root.get("entidadId"), entidadId));
-            }
-
-            if (accion != null && !accion.isBlank()) {
-                predicates.add(
-                        cb.equal(root.get("accion"), accion.trim().toUpperCase())
-                );
-            }
-
-            if (desde != null) {
-                predicates.add(
-                        cb.greaterThanOrEqualTo(root.get("fecha"), desde.atStartOfDay())
-                );
-            }
-
-            if (search != null && !search.isBlank()) {
-                String like = "%" + search.trim().toLowerCase() + "%";
-
-                Join<Auditoria, Usuario> usuario = root.join("usuario", JoinType.INNER);
-
-                predicates.add(
-                        cb.or(
-                                cb.like(cb.lower(root.get("entidad")), like),
-                                cb.like(cb.lower(usuario.get("username")), like),
-                                cb.like(cb.lower(root.get("id").as(String.class)), like),
-                                cb.like(
-                                        cb.lower(root.get("entidadId").as(String.class)),
-                                        like
-                                )
-                        )
-                );
-            }
-
-            return cb.and(predicates.toArray(new Predicate[0]));
-        };
     }
 
     @Override
