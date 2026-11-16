@@ -2,12 +2,13 @@ package com.motorepuestos.inventario.categoria.application.usecase;
 
 import com.motorepuestos.inventario.auditoria.service.AuditoriaHelper;
 import com.motorepuestos.inventario.categoria.application.command.ActualizarCategoriaCommand;
+import com.motorepuestos.inventario.categoria.domain.policy.CategoriaNombrePolicy;
+import com.motorepuestos.inventario.categoria.domain.valueobject.NombreCategoria;
 import com.motorepuestos.inventario.categoria.dto.CategoriaRequest;
 import com.motorepuestos.inventario.categoria.dto.CategoriaResponse;
 import com.motorepuestos.inventario.categoria.entity.Categoria;
 import com.motorepuestos.inventario.categoria.mapper.CategoriaMapper;
 import com.motorepuestos.inventario.categoria.repository.CategoriaRepository;
-import com.motorepuestos.inventario.common.exception.ResourceConflictException;
 import com.motorepuestos.inventario.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ public class ActualizarCategoriaUseCaseImpl implements ActualizarCategoriaUseCas
     private final CategoriaRepository categoriaRepository;
     private final CategoriaMapper categoriaMapper;
     private final AuditoriaHelper auditoriaHelper;
+    private final CategoriaNombrePolicy categoriaNombrePolicy;
 
     @Override
     @Transactional
@@ -27,10 +29,8 @@ public class ActualizarCategoriaUseCaseImpl implements ActualizarCategoriaUseCas
         CategoriaRequest request = command.request();
         Categoria categoria = obtenerCategoriaConLockOrThrow(command.id());
 
-        boolean cambioNombre = !categoria.getNombre().equals(request.getNombre());
-        if (cambioNombre) {
-            validarNombreDisponible(request.getNombre());
-        }
+        NombreCategoria nombre = categoriaNombrePolicy.validarYNormalizar(request.getNombre());
+        categoriaNombrePolicy.validarDisponibleParaActualizacion(categoria, nombre);
 
         auditoriaHelper.registrarCambio(
                 "ACTUALIZAR",
@@ -38,7 +38,7 @@ public class ActualizarCategoriaUseCaseImpl implements ActualizarCategoriaUseCas
                 command.id(),
                 categoria,
                 categoriaMapper::toResponse,
-                () -> categoria.setNombre(request.getNombre())
+                () -> categoria.setNombre(nombre.valor())
         );
 
         return categoriaMapper.toResponse(categoria);
@@ -48,11 +48,5 @@ public class ActualizarCategoriaUseCaseImpl implements ActualizarCategoriaUseCas
         return categoriaRepository.findByIdForUpdate(id)
                 .filter(categoria -> Boolean.TRUE.equals(categoria.getEstado()))
                 .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada con id: " + id));
-    }
-
-    private void validarNombreDisponible(String nombre) {
-        if (categoriaRepository.existsByNombreAndEstadoTrue(nombre)) {
-            throw new ResourceConflictException("El nombre de la categoría ya existe");
-        }
     }
 }

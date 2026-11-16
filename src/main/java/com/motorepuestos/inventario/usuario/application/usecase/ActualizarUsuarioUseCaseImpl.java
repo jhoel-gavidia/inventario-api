@@ -1,11 +1,12 @@
 package com.motorepuestos.inventario.usuario.application.usecase;
 
 import com.motorepuestos.inventario.auditoria.service.AuditoriaHelper;
-import com.motorepuestos.inventario.common.exception.ResourceConflictException;
 import com.motorepuestos.inventario.common.exception.ResourceNotFoundException;
 import com.motorepuestos.inventario.common.security.SecurityUtils;
 import com.motorepuestos.inventario.usuario.application.command.ActualizarUsuarioCommand;
 import com.motorepuestos.inventario.usuario.domain.policy.UsuarioAccesoPolicy;
+import com.motorepuestos.inventario.usuario.domain.policy.UsuarioUsernamePolicy;
+import com.motorepuestos.inventario.usuario.domain.valueobject.Username;
 import com.motorepuestos.inventario.usuario.dto.UsuarioResponse;
 import com.motorepuestos.inventario.usuario.dto.UsuarioUpdateRequest;
 import com.motorepuestos.inventario.usuario.entity.Usuario;
@@ -24,6 +25,7 @@ public class ActualizarUsuarioUseCaseImpl implements ActualizarUsuarioUseCase {
     private final AuditoriaHelper auditoriaHelper;
     private final SecurityUtils securityUtils;
     private final UsuarioAccesoPolicy usuarioAccesoPolicy;
+    private final UsuarioUsernamePolicy usuarioUsernamePolicy;
 
     @Override
     @Transactional
@@ -37,10 +39,8 @@ public class ActualizarUsuarioUseCaseImpl implements ActualizarUsuarioUseCase {
 
         usuarioAccesoPolicy.validarCambioDeAcceso(usuario, request.getRol(), request.getEstado());
 
-        if (!usuario.getUsername().equals(request.getUsername())
-                && usuarioRepository.existsByUsername(request.getUsername())) {
-            throw new ResourceConflictException("El username ya existe");
-        }
+        Username username = usuarioUsernamePolicy.validarYNormalizar(request.getUsername());
+        usuarioUsernamePolicy.validarDisponibleParaActualizacion(usuario, username);
 
         auditoriaHelper.registrarCambio(
                 actor,
@@ -50,7 +50,7 @@ public class ActualizarUsuarioUseCaseImpl implements ActualizarUsuarioUseCase {
                 usuario,
                 usuarioMapper::toResponse,
                 () -> {
-                    usuario.setUsername(request.getUsername());
+                    usuario.setUsername(username.valor());
                     usuario.setRol(request.getRol());
                     usuario.setEstado(request.getEstado());
                 }
