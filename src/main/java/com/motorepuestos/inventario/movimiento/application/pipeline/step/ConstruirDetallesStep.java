@@ -2,10 +2,9 @@ package com.motorepuestos.inventario.movimiento.application.pipeline.step;
 
 import com.motorepuestos.inventario.movimiento.application.pipeline.MovimientoRegistroContext;
 import com.motorepuestos.inventario.movimiento.application.pipeline.MovimientoRegistroStep;
+import com.motorepuestos.inventario.movimiento.application.validation.DetalleMovimientoValidado;
+import com.motorepuestos.inventario.movimiento.application.validation.MovimientoValidacionChain;
 import com.motorepuestos.inventario.movimiento.domain.factory.DetalleMovimientoFactory;
-import com.motorepuestos.inventario.movimiento.domain.policy.MovimientoRegistroPolicy;
-import com.motorepuestos.inventario.movimiento.domain.valueobject.CantidadMovimiento;
-import com.motorepuestos.inventario.movimiento.dto.DetalleMovimientoRequest;
 import com.motorepuestos.inventario.movimiento.entity.DetalleMovimiento;
 import com.motorepuestos.inventario.producto.entity.Producto;
 import com.motorepuestos.inventario.producto.service.ProductoStockService;
@@ -21,28 +20,28 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ConstruirDetallesStep implements MovimientoRegistroStep {
 
-    private final MovimientoRegistroPolicy movimientoRegistroPolicy;
+    private final MovimientoValidacionChain movimientoValidacionChain;
     private final ProductoStockService productoStockService;
     private final DetalleMovimientoFactory detalleMovimientoFactory;
 
     @Override
     public void ejecutar(MovimientoRegistroContext context) {
-        List<DetalleMovimientoRequest> detallesOrdenados =
-                movimientoRegistroPolicy.validarYOrdenarDetalles(context.getCommand().detalles());
+        List<DetalleMovimientoValidado> detallesValidados =
+                movimientoValidacionChain.validar(context.getCommand().detalles());
 
-        List<DetalleMovimiento> detalles = new ArrayList<>(detallesOrdenados.size());
+        List<DetalleMovimiento> detalles = new ArrayList<>(detallesValidados.size());
 
-        for (DetalleMovimientoRequest detalleRequest : detallesOrdenados) {
+        for (DetalleMovimientoValidado detalleValidado : detallesValidados) {
             Producto producto = productoStockService.obtenerBloqueadoParaMovimiento(
-                    detalleRequest.getProductoId()
+                    detalleValidado.productoId()
             );
 
-            CantidadMovimiento cantidad =
-                    movimientoRegistroPolicy.validarCantidad(detalleRequest.getCantidad());
+            context.getEstrategia().aplicarStock(
+                    producto,
+                    detalleValidado.cantidad().valor()
+            );
 
-            context.getEstrategia().aplicarStock(producto, cantidad.valor());
-
-            detalles.add(detalleMovimientoFactory.crear(producto, cantidad));
+            detalles.add(detalleMovimientoFactory.crear(producto, detalleValidado.cantidad()));
         }
 
         context.setDetalles(detalles);
