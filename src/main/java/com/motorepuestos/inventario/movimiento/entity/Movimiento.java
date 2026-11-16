@@ -1,5 +1,6 @@
 package com.motorepuestos.inventario.movimiento.entity;
 
+import com.motorepuestos.inventario.common.exception.BusinessException;
 import com.motorepuestos.inventario.usuario.entity.Usuario;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -41,4 +42,12 @@ public class Movimiento {
             orphanRemoval = true
     )
     private List<DetalleMovimiento> detalles = new ArrayList<>();
+
+    public void agregarDetalle(DetalleMovimiento detalle) {
+        if (detalle == null) {
+            throw new BusinessException("El detalle del movimiento es obligatorio");
+        }
+        detalle.setMovimiento(this);
+        this.detalles.add(detalle);
+    }
 }
