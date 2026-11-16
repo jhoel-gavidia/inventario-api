@@ -1,7 +1,7 @@
 package com.motorepuestos.inventario.producto.service;
 
-import com.motorepuestos.inventario.common.exception.BusinessException;
 import com.motorepuestos.inventario.common.exception.ResourceNotFoundException;
+import com.motorepuestos.inventario.producto.domain.policy.ProductoMovimientoPolicy;
 import com.motorepuestos.inventario.producto.entity.Producto;
 import com.motorepuestos.inventario.producto.repository.ProductoRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,17 +14,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProductoStockServiceImpl implements ProductoStockService {
 
     private final ProductoRepository productoRepository;
+    private final ProductoMovimientoPolicy productoMovimientoPolicy;
 
     @Override
     public Producto obtenerBloqueadoParaMovimiento(Long id) {
         Producto producto = productoRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
 
-        if (!Boolean.TRUE.equals(producto.getEstado())) {
-            throw new BusinessException(
-                    "El producto está inactivo y no admite movimientos: " + producto.getCodigo()
-            );
-        }
+        productoMovimientoPolicy.validarAptoParaMovimiento(producto);
 
         return producto;
     }
