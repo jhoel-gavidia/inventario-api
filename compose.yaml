@@ -38,6 +38,8 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION}
 
+      STOCK_MINIMO: ${STOCK_MINIMO:-5}
+
     ports:
       - "8080:8080"
 

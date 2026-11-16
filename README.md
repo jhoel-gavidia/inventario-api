@@ -81,6 +81,7 @@ La configuración base (`application.properties`) **no tiene valores por defecto
 | `JWT_SECRET` | Clave secreta para firmar los JWT (mín. 256 bits) | `(cadena aleatoria larga)` |
 | `JWT_EXPIRATION` | Vigencia del token en **milisegundos** | `86400000` (24 h) |
 | `CORS_ALLOWED_ORIGIN` | Origen permitido para el frontend (default: `http://localhost:3000`) | `https://mi-frontend.com` |
+| `STOCK_MINIMO` | Umbral de unidades para emitir alertas de stock bajo (opcional) | `5` |
 
 > Para Docker Compose también se usan `POSTGRES_DB`, `POSTGRES_USER` y `POSTGRES_PASSWORD` (los consume el servicio `postgres`).
 
