@@ -14,6 +14,9 @@ import java.util.Set;
 public class MovimientoRegistroPolicy {
 
     public List<DetalleMovimientoRequest> validarYOrdenarDetalles(List<DetalleMovimientoRequest> detalles) {
+        if (detalles == null || detalles.isEmpty()) {
+            throw new BusinessException("El movimiento debe tener al menos un detalle");
+        }
         validarProductosNoRepetidos(detalles);
         return detalles.stream()
                 .sorted(Comparator.comparing(DetalleMovimientoRequest::getProductoId))
