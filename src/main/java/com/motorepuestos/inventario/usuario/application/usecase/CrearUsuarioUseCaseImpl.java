@@ -1,8 +1,9 @@
 package com.motorepuestos.inventario.usuario.application.usecase;
 
 import com.motorepuestos.inventario.auditoria.service.AuditoriaHelper;
-import com.motorepuestos.inventario.common.exception.ResourceConflictException;
 import com.motorepuestos.inventario.usuario.application.command.CrearUsuarioCommand;
+import com.motorepuestos.inventario.usuario.domain.policy.UsuarioUsernamePolicy;
+import com.motorepuestos.inventario.usuario.domain.valueobject.Username;
 import com.motorepuestos.inventario.usuario.dto.UsuarioRequest;
 import com.motorepuestos.inventario.usuario.dto.UsuarioResponse;
 import com.motorepuestos.inventario.usuario.entity.Usuario;
@@ -21,14 +22,18 @@ public class CrearUsuarioUseCaseImpl implements CrearUsuarioUseCase {
     private final UsuarioMapper usuarioMapper;
     private final PasswordEncoder passwordEncoder;
     private final AuditoriaHelper auditoriaHelper;
+    private final UsuarioUsernamePolicy usuarioUsernamePolicy;
 
     @Override
     @Transactional
     public UsuarioResponse ejecutar(CrearUsuarioCommand command) {
         UsuarioRequest request = command.request();
-        validarUsuarioDisponible(request.getUsername());
+
+        Username username = usuarioUsernamePolicy.validarYNormalizar(request.getUsername());
+        usuarioUsernamePolicy.validarDisponibleParaCreacion(username);
 
         Usuario usuario = usuarioMapper.toEntity(request);
+        usuario.setUsername(username.valor());
         usuario.setPassword(passwordEncoder.encode(request.getPassword()));
 
         usuarioRepository.save(usuario);
@@ -36,11 +41,5 @@ public class CrearUsuarioUseCaseImpl implements CrearUsuarioUseCase {
         UsuarioResponse response = usuarioMapper.toResponse(usuario);
         auditoriaHelper.registrarCreacion("CREAR", "USUARIO", usuario.getId(), response);
         return response;
-    }
-
-    private void validarUsuarioDisponible(String username) {
-        if (usuarioRepository.existsByUsername(username)) {
-            throw new ResourceConflictException("El username ya existe");
-        }
     }
 }
