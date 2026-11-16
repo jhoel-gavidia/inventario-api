@@ -2,8 +2,9 @@ package com.motorepuestos.inventario.auditoria.event;
 
 import com.motorepuestos.inventario.auditoria.service.AuditoriaService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 @Component
 @RequiredArgsConstructor
@@ -11,7 +12,7 @@ public class AuditoriaEventListener {
 
     private final AuditoriaService auditoriaService;
 
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT, fallbackExecution = true)
     public void onAuditoria(AuditoriaEvent event) {
         if (event.actor() != null) {
             auditoriaService.registrar(
