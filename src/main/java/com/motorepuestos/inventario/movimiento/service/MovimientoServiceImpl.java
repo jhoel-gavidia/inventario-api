@@ -12,6 +12,8 @@ import com.motorepuestos.inventario.movimiento.entity.Tipo;
 import com.motorepuestos.inventario.movimiento.mapper.MovimientoMapper;
 import com.motorepuestos.inventario.movimiento.entity.DetalleMovimiento;
 import com.motorepuestos.inventario.movimiento.entity.Movimiento;
+import com.motorepuestos.inventario.movimiento.service.strategy.MovimientoTipoStrategy;
+import com.motorepuestos.inventario.movimiento.service.strategy.MovimientoTipoStrategyFactory;
 import com.motorepuestos.inventario.producto.entity.Producto;
 import com.motorepuestos.inventario.movimiento.repository.MovimientoRepository;
 import com.motorepuestos.inventario.producto.service.ProductoStockService;
@@ -41,6 +43,7 @@ public class MovimientoServiceImpl implements MovimientoService {
     private final MovimientoMapper movimientoMapper;
     private final SecurityUtils securityUtils;
     private final AuditoriaHelper auditoriaHelper;
+    private final MovimientoTipoStrategyFactory movimientoTipoStrategyFactory;
 
     @Override
     public MovimientoResponse obtenerPorId(Long id) {
@@ -51,6 +54,7 @@ public class MovimientoServiceImpl implements MovimientoService {
     @Transactional
     public MovimientoResponse registrar(MovimientoRequest request) {
         Usuario usuario = securityUtils.obtenerUsuarioAutenticado();
+        MovimientoTipoStrategy estrategia = movimientoTipoStrategyFactory.obtener(request.getTipo());
 
         List<DetalleMovimientoRequest> detallesOrdenados = ordenarDetalles(request.getDetalles());
 
@@ -60,7 +64,7 @@ public class MovimientoServiceImpl implements MovimientoService {
         movimiento.setUsuario(usuario);
 
         for (DetalleMovimientoRequest detalleRequest : detallesOrdenados) {
-            DetalleMovimiento detalle = construirDetalle(movimiento, request.getTipo(), detalleRequest);
+            DetalleMovimiento detalle = construirDetalle(movimiento, estrategia, detalleRequest);
             movimiento.getDetalles().add(detalle);
         }
 
@@ -176,14 +180,16 @@ public class MovimientoServiceImpl implements MovimientoService {
     }
 
     private DetalleMovimiento construirDetalle(
-            Movimiento movimiento, Tipo tipo, DetalleMovimientoRequest detalleRequest
+            Movimiento movimiento,
+            MovimientoTipoStrategy estrategia,
+            DetalleMovimientoRequest detalleRequest
     ) {
         Producto producto = productoStockService.obtenerBloqueadoParaMovimiento(
                 detalleRequest.getProductoId()
         );
         Integer cantidad = validarCantidad(detalleRequest.getCantidad());
 
-        actualizarStock(producto, tipo, cantidad);
+        estrategia.aplicarStock(producto, cantidad);
 
         DetalleMovimiento detalle = new DetalleMovimiento();
         detalle.setMovimiento(movimiento);
@@ -200,15 +206,6 @@ public class MovimientoServiceImpl implements MovimientoService {
         }
 
         return cantidad;
-    }
-
-    private void actualizarStock(Producto producto, Tipo tipo, Integer cantidad) {
-
-        if (tipo == null) {
-            throw new BusinessException("El tipo de movimiento es obligatorio");
-        }
-
-        tipo.aplicar(producto, cantidad);
     }
 
 
