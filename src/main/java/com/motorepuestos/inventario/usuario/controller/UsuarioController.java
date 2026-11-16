@@ -3,6 +3,7 @@ package com.motorepuestos.inventario.usuario.controller;
 import com.motorepuestos.inventario.usuario.dto.UsuarioRequest;
 import com.motorepuestos.inventario.usuario.dto.UsuarioUpdateRequest;
 import com.motorepuestos.inventario.usuario.dto.UsuarioResponse;
+import com.motorepuestos.inventario.usuario.entity.Rol;
 import com.motorepuestos.inventario.usuario.service.UsuarioService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
@@ -53,9 +54,13 @@ public class UsuarioController {
     }
 
     @GetMapping
-    public ResponseEntity<List<UsuarioResponse>> obtenerTodos() {
+    public ResponseEntity<List<UsuarioResponse>> obtenerTodos(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Rol rol,
+            @RequestParam(required = false) Boolean estado
+    ) {
         return ResponseEntity.ok(
-                usuarioService.obtenerTodos()
+                usuarioService.obtenerTodos(search, rol, estado)
         );
     }
 

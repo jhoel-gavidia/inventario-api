@@ -110,7 +110,7 @@ class ProductoServiceIntegrationTest extends AbstractIntegrationTest {
         ));
 
         // Act
-        List<ProductoResponse> productos = productoService.obtenerTodos();
+        List<ProductoResponse> productos = productoService.obtenerTodos(null, null, null, null);
 
         // Assert
         assertThat(productos).hasSize(1);
@@ -349,7 +349,7 @@ class ProductoServiceIntegrationTest extends AbstractIntegrationTest {
 
         // Act
         List<ProductoResponse> responses =
-                productoService.obtenerTodos();
+                productoService.obtenerTodos(null, null, null, null);
 
         // Assert
         assertThat(responses)

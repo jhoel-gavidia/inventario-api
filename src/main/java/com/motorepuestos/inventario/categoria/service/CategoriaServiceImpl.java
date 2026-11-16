@@ -34,8 +34,8 @@ public class CategoriaServiceImpl implements CategoriaService {
     }
 
     @Override
-    public List<CategoriaResponse> obtenerTodos() {
-        return categoriaQueryService.obtenerTodos();
+    public List<CategoriaResponse> obtenerTodos(String search, Boolean estado) {
+        return categoriaQueryService.obtenerTodos(search, estado);
     }
 
     @Override

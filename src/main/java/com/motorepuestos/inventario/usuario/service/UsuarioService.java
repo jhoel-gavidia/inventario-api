@@ -5,6 +5,8 @@ import com.motorepuestos.inventario.usuario.dto.UsuarioRequest;
 import com.motorepuestos.inventario.usuario.dto.UsuarioUpdateRequest;
 import com.motorepuestos.inventario.usuario.dto.UsuarioResponse;
 
+import com.motorepuestos.inventario.usuario.entity.Rol;
+
 import java.util.List;
 
 public interface UsuarioService {
@@ -12,7 +14,7 @@ public interface UsuarioService {
 
     UsuarioResponse obtenerPorId(Long id);
 
-    List<UsuarioResponse> obtenerTodos();
+    List<UsuarioResponse> obtenerTodos(String search, Rol rol, Boolean estado);
 
     UsuarioResponse actualizar(Long id, UsuarioUpdateRequest request);
 

@@ -53,9 +53,14 @@ public class ProductoController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ProductoResponse>> obtenerTodos() {
+    public ResponseEntity<List<ProductoResponse>> obtenerTodos(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean estado,
+            @RequestParam(required = false) Long categoriaId,
+            @RequestParam(required = false) Integer stockMaximo
+    ) {
         return ResponseEntity.ok(
-                productoService.obtenerTodos()
+                productoService.obtenerTodos(search, estado, categoriaId, stockMaximo)
         );
     }
 

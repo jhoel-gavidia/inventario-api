@@ -11,7 +11,7 @@ public interface CategoriaService {
 
     CategoriaResponse obtenerPorId(Long id);
 
-    List<CategoriaResponse> obtenerTodos();
+    List<CategoriaResponse> obtenerTodos(String search, Boolean estado);
 
     CategoriaResponse actualizar(Long id, CategoriaRequest request);
 

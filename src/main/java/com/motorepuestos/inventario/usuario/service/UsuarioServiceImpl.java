@@ -39,8 +39,8 @@ public class UsuarioServiceImpl implements UsuarioService {
     }
 
     @Override
-    public List<UsuarioResponse> obtenerTodos() {
-        return usuarioQueryService.obtenerTodos();
+    public List<UsuarioResponse> obtenerTodos(String search, com.motorepuestos.inventario.usuario.entity.Rol rol, Boolean estado) {
+        return usuarioQueryService.obtenerTodos(search, rol, estado);
     }
 
     @Override

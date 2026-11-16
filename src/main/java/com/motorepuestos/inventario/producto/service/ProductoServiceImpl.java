@@ -35,8 +35,8 @@ public class ProductoServiceImpl implements ProductoService {
     }
 
     @Override
-    public List<ProductoResponse> obtenerTodos() {
-        return productoQueryService.obtenerTodos();
+    public List<ProductoResponse> obtenerTodos(String search, Boolean estado, Long categoriaId, Integer stockMaximo) {
+        return productoQueryService.obtenerTodos(search, estado, categoriaId, stockMaximo);
     }
 
     @Override

@@ -2,10 +2,14 @@ package com.motorepuestos.inventario.usuario.service.query;
 
 import com.motorepuestos.inventario.common.exception.ResourceNotFoundException;
 import com.motorepuestos.inventario.usuario.dto.UsuarioResponse;
+import com.motorepuestos.inventario.usuario.entity.Rol;
 import com.motorepuestos.inventario.usuario.entity.Usuario;
 import com.motorepuestos.inventario.usuario.mapper.UsuarioMapper;
 import com.motorepuestos.inventario.usuario.repository.UsuarioRepository;
+import com.motorepuestos.inventario.usuario.repository.UsuarioSpecifications;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,8 +29,15 @@ public class UsuarioQueryServiceImpl implements UsuarioQueryService {
     }
 
     @Override
-    public List<UsuarioResponse> obtenerTodos() {
-        return usuarioRepository.findByEstadoTrue()
+    public List<UsuarioResponse> obtenerTodos(String search, Rol rol, Boolean estado) {
+        Boolean estadoFiltro = estado != null ? estado : Boolean.TRUE;
+
+        Specification<Usuario> specification = Specification
+                .where(UsuarioSpecifications.conBusqueda(search))
+                .and(UsuarioSpecifications.conRol(rol))
+                .and(UsuarioSpecifications.conEstado(estadoFiltro));
+
+        return usuarioRepository.findAll(specification, Sort.by(Sort.Direction.ASC, "username"))
                 .stream()
                 .map(usuarioMapper::toResponse)
                 .toList();

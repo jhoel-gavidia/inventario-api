@@ -149,7 +149,7 @@ class UsuarioServiceIntegrationTest extends AbstractIntegrationTest {
         usuarioRepository.save(inactivo);
 
         // Act
-        List<UsuarioResponse> usuarios = usuarioService.obtenerTodos();
+        List<UsuarioResponse> usuarios = usuarioService.obtenerTodos(null, null, null);
 
         // Assert
         assertThat(usuarios).hasSize(1);
@@ -284,7 +284,7 @@ class UsuarioServiceIntegrationTest extends AbstractIntegrationTest {
         usuarioRepository.save(segundoUsuario);
 
         List<UsuarioResponse> usuarios =
-                usuarioService.obtenerTodos();
+                usuarioService.obtenerTodos(null, null, null);
 
         assertThat(usuarios)
                 .hasSize(2)
