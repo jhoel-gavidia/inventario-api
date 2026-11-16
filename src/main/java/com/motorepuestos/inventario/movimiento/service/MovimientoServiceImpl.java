@@ -1,6 +1,7 @@
 package com.motorepuestos.inventario.movimiento.service;
 
-import com.motorepuestos.inventario.movimiento.dto.DetalleMovimientoRequest;
+import com.motorepuestos.inventario.movimiento.application.command.RegistrarMovimientoCommand;
+import com.motorepuestos.inventario.movimiento.application.usecase.RegistrarMovimientoUseCase;
 import com.motorepuestos.inventario.movimiento.dto.MovimientoDetalleView;
 import com.motorepuestos.inventario.movimiento.dto.MovimientoRequest;
 import com.motorepuestos.inventario.movimiento.dto.MovimientoResponse;
@@ -8,18 +9,10 @@ import com.motorepuestos.inventario.movimiento.dto.MovimientoResumenResponse;
 import com.motorepuestos.inventario.common.dto.PaginaResponse;
 import com.motorepuestos.inventario.common.exception.BusinessException;
 import com.motorepuestos.inventario.common.exception.ResourceNotFoundException;
+import com.motorepuestos.inventario.movimiento.entity.Movimiento;
 import com.motorepuestos.inventario.movimiento.entity.Tipo;
 import com.motorepuestos.inventario.movimiento.mapper.MovimientoMapper;
-import com.motorepuestos.inventario.movimiento.entity.DetalleMovimiento;
-import com.motorepuestos.inventario.movimiento.entity.Movimiento;
-import com.motorepuestos.inventario.movimiento.service.strategy.MovimientoTipoStrategy;
-import com.motorepuestos.inventario.movimiento.service.strategy.MovimientoTipoStrategyFactory;
-import com.motorepuestos.inventario.producto.entity.Producto;
 import com.motorepuestos.inventario.movimiento.repository.MovimientoRepository;
-import com.motorepuestos.inventario.producto.service.ProductoStockService;
-import com.motorepuestos.inventario.common.security.SecurityUtils;
-import com.motorepuestos.inventario.auditoria.service.AuditoriaHelper;
-import com.motorepuestos.inventario.usuario.entity.Usuario;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,10 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -39,11 +28,8 @@ import java.util.Set;
 public class MovimientoServiceImpl implements MovimientoService {
 
     private final MovimientoRepository movimientoRepository;
-    private final ProductoStockService productoStockService;
     private final MovimientoMapper movimientoMapper;
-    private final SecurityUtils securityUtils;
-    private final AuditoriaHelper auditoriaHelper;
-    private final MovimientoTipoStrategyFactory movimientoTipoStrategyFactory;
+    private final RegistrarMovimientoUseCase registrarMovimientoUseCase;
 
     @Override
     public MovimientoResponse obtenerPorId(Long id) {
@@ -51,35 +37,10 @@ public class MovimientoServiceImpl implements MovimientoService {
     }
 
     @Override
-    @Transactional
     public MovimientoResponse registrar(MovimientoRequest request) {
-        Usuario usuario = securityUtils.obtenerUsuarioAutenticado();
-        MovimientoTipoStrategy estrategia = movimientoTipoStrategyFactory.obtener(request.getTipo());
-
-        List<DetalleMovimientoRequest> detallesOrdenados = ordenarDetalles(request.getDetalles());
-
-        Movimiento movimiento = new Movimiento();
-        movimiento.setTipo(request.getTipo());
-        movimiento.setFecha(LocalDateTime.now());
-        movimiento.setUsuario(usuario);
-
-        for (DetalleMovimientoRequest detalleRequest : detallesOrdenados) {
-            DetalleMovimiento detalle = construirDetalle(movimiento, estrategia, detalleRequest);
-            movimiento.getDetalles().add(detalle);
-        }
-
-        Movimiento movimientoGuardado =
-                movimientoRepository.save(movimiento);
-        MovimientoResponse response = movimientoMapper.toResponse(movimientoGuardado);
-
-        auditoriaHelper.registrarCreacion(
-                "REGISTRAR",
-                "MOVIMIENTO",
-                movimientoGuardado.getId(),
-                response
+        return registrarMovimientoUseCase.ejecutar(
+                new RegistrarMovimientoCommand(request.getTipo(), request.getDetalles())
         );
-
-        return response;
     }
 
     @Override
@@ -131,7 +92,6 @@ public class MovimientoServiceImpl implements MovimientoService {
     }
 
     private String normalizarSearch(String search) {
-
         if (search == null || search.isBlank()) {
             return null;
         }
@@ -140,7 +100,6 @@ public class MovimientoServiceImpl implements MovimientoService {
     }
 
     private Tipo parsearTipo(String tipo) {
-
         if (tipo == null || tipo.isBlank()) {
             return null;
         }
@@ -153,61 +112,6 @@ public class MovimientoServiceImpl implements MovimientoService {
             );
         }
     }
-
-    private List<DetalleMovimientoRequest> ordenarDetalles(
-            List<DetalleMovimientoRequest> detalles
-    ) {
-
-        validarProductosNoRepetidos(detalles);
-
-        return detalles.stream()
-                .sorted(Comparator.comparing(DetalleMovimientoRequest::getProductoId))
-                .toList();
-    }
-
-    private void validarProductosNoRepetidos(
-            List<DetalleMovimientoRequest> detalles
-    ) {
-        Set<Long> productos = new HashSet<>();
-
-        for (DetalleMovimientoRequest detalle : detalles) {
-            if (!productos.add(detalle.getProductoId())) {
-                throw new BusinessException(
-                        "El producto no puede repetirse dentro del mismo movimiento"
-                );
-            }
-        }
-    }
-
-    private DetalleMovimiento construirDetalle(
-            Movimiento movimiento,
-            MovimientoTipoStrategy estrategia,
-            DetalleMovimientoRequest detalleRequest
-    ) {
-        Producto producto = productoStockService.obtenerBloqueadoParaMovimiento(
-                detalleRequest.getProductoId()
-        );
-        Integer cantidad = validarCantidad(detalleRequest.getCantidad());
-
-        estrategia.aplicarStock(producto, cantidad);
-
-        DetalleMovimiento detalle = new DetalleMovimiento();
-        detalle.setMovimiento(movimiento);
-        detalle.setProducto(producto);
-        detalle.setCantidad(cantidad);
-
-        return detalle;
-    }
-
-    private Integer validarCantidad(Integer cantidad) {
-
-        if (cantidad == null || cantidad <= 0) {
-            throw new BusinessException("La cantidad debe ser mayor que cero");
-        }
-
-        return cantidad;
-    }
-
 
     private Movimiento obtenerMovimientoOrThrow(Long id) {
         return movimientoRepository.findById(id)
