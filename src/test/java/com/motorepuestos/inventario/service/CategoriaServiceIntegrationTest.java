@@ -159,7 +159,7 @@ class CategoriaServiceIntegrationTest extends AbstractIntegrationTest {
 
         // Act
         List<CategoriaResponse> responses =
-                categoriaService.obtenerTodos();
+                categoriaService.obtenerTodos(null, null);
 
         // Assert
         assertThat(responses)
@@ -296,7 +296,7 @@ class CategoriaServiceIntegrationTest extends AbstractIntegrationTest {
         categoriaService.crear(request);
 
         // Act
-        List<CategoriaResponse> categorias = categoriaService.obtenerTodos();
+        List<CategoriaResponse> categorias = categoriaService.obtenerTodos(null, null);
 
         // Assert
         assertThat(categorias).hasSize(1);

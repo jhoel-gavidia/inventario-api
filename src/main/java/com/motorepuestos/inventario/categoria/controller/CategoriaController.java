@@ -47,8 +47,11 @@ public class CategoriaController {
     }
 
     @GetMapping
-    public ResponseEntity<List<CategoriaResponse>> obtenerTodos() {
-        return ResponseEntity.ok(categoriaService.obtenerTodos());
+    public ResponseEntity<List<CategoriaResponse>> obtenerTodos(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean estado
+    ) {
+        return ResponseEntity.ok(categoriaService.obtenerTodos(search, estado));
     }
 
     @PutMapping("/{id}")

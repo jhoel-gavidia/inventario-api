@@ -11,7 +11,7 @@ public interface ProductoService {
 
     ProductoResponse obtenerPorId(Long id);
 
-    List<ProductoResponse> obtenerTodos();
+    List<ProductoResponse> obtenerTodos(String search, Boolean estado, Long categoriaId, Integer stockMaximo);
 
     ProductoResponse actualizar(Long id, ProductoUpdateRequest request);
 
